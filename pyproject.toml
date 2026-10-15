@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "computational-neuroscience-roadmap"
+version = "0.1.0"
+description = "Small, reproducible computational neuroscience models for self-study."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24"]
+
+[project.optional-dependencies]
+examples = ["matplotlib>=3.7"]
+notebooks = ["matplotlib>=3.7", "ipykernel>=6", "nbclient>=0.10", "nbformat>=5.9"]
+dev = ["pytest>=7.0", "matplotlib>=3.7", "ipykernel>=6", "nbclient>=0.10", "nbformat>=5.9"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

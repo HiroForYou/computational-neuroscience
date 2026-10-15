@@ -4,54 +4,189 @@
 
 Un roadmap autodidacta y práctico para aprender neurociencia computacional. El objetivo es conectar la intuición biológica, los modelos matemáticos y los experimentos ejecutables: comprender un modelo, implementarlo o explorarlo y usar simulaciones para comprobar qué explica.
 
-El proyecto está en desarrollo. Actualmente contiene dos módulos interactivos y autocontenidos; el roadmap siguiente es una ruta propuesta, no significa que todos los temas ya estén cubiertos.
+El proyecto incluye módulos interactivos en el navegador y un pequeño paquete Python con ejemplos ejecutables y pruebas. Sigue en desarrollo: la ruta es una propuesta de aprendizaje, no significa que todos los temas ya estén cubiertos.
 
 ## Ruta de aprendizaje
 
-| Etapa | Tema | Enfoque |
-|---|---|---|
-| 1 | Fundamentos | Repasar las matemáticas, la física y Python necesarios para describir neuronas y sistemas neuronales |
-| 2 | Modelos de neurona | Potencial de membrana, canales iónicos, potenciales de acción y modelo de Hodgkin–Huxley |
-| 3 | Dinámica neuronal | Excitabilidad, planos de fase, patrones de disparo y modelos neuronales simplificados |
-| 4 | Redes y memoria | Redes recurrentes, atractores, memoria asociativa y modelo de Hopfield |
-| 5 | Aprendizaje y plasticidad | Reglas de aprendizaje sináptico, plasticidad neuronal y aprendizaje en redes |
-| 6 | De los modelos a los datos | Analizar señales neuronales, comparar modelos con observaciones y documentar limitaciones |
+Ritmo sugerido: **18 semanas planificadas, de 5 a 8 horas semanales** (aprox. 90–144 horas). Es una estimación para autoestudio, no la duración oficial de un curso. La [ruta semana a semana](docs/ruta-de-aprendizaje.md) especifica objetivos, práctica y entregables.
 
-Cada etapa irá creciendo con explicaciones, experimentos pequeños y código a medida que avance el proyecto.
+| Semanas | Tema |
+|---|---|
+| 1–6 | Python y matemáticas, LIF, Hodgkin–Huxley, integración numérica, sinapsis y sistemas lineales |
+| 7–11 | Sistemas dinámicos, modelos de población, Hopfield, procesos estocásticos y diseño experimental |
+| 12–16 | Ajuste de modelos, GLM Poisson, codificación/decodificación, validación, PCA y procesamiento de señales |
+| 17–18 | Especialización y proyecto final reproducible |
+
+La [ruta autodidacta detallada](docs/ruta-de-aprendizaje.md) incluye actividades y un entregable para cada semana, checkpoints y recursos oficiales de Stanford y Neuromatch Academy.
+
+## Qué está implementado
+
+| Capa | Contenido |
+|---|---|
+| Paquete Python (`src/`) | LIF (con curva f-I analítica), Hodgkin–Huxley, Hopfield, ajuste lineal, GLM Poisson, PCA y la utilidad `current_pulse` |
+| Semanas (`weeks/week_XX_<tema>/`) | Una carpeta por semana (1–18) con el script (teoría, ecuaciones, figura y validación con `assert`), su notebook ejecutado y sus `outputs/`; filtro sináptico, Wilson–Cowan, spikes Poisson, validación cruzada, procesamiento de señales y decisión bayesiana solo existen aquí |
+| Módulos interactivos (`interactive/`) | Ocho módulos para el navegador: LIF, Hodgkin–Huxley, sinapsis, sistemas lineales 2D, Wilson–Cowan, Hopfield, trenes Poisson y decisión bayesiana |
+| Aún no cubierto | Plasticidad sináptica/STDP, aprendizaje por refuerzo, datos experimentales reales |
 
 ## Módulos actuales
 
+**Pruébalos en línea:** [hiroforyou.github.io/computational-neuroscience/interactive/](https://hiroforyou.github.io/computational-neuroscience/interactive/) — todos los módulos corren en el navegador y se publican con GitHub Pages desde `interactive/`.
+
 | Módulo | Qué puedes explorar |
 |---|---|
-| [Hodgkin–Huxley: la neurona como sistema dinámico](<Hodgkin–Huxley_ la neurona como sistema dinámico.html>) | Ajustar el estímulo y las conductancias; explorar potenciales de acción, compuertas de canales, corrientes iónicas, espacio de fase y frecuencia de disparo |
-| [Red de Hopfield: memoria como paisaje de energía](<Red de Hopfield_ memoria como paisaje de energía.html>) | Guardar y recuperar patrones, añadir ruido e inspeccionar la energía, los solapamientos, los pesos sinápticos, las reglas de actualización y la capacidad de memoria |
+| [Neurona LIF: integrar, disparar y reiniciar](https://hiroforyou.github.io/computational-neuroscience/interactive/lif.html) | Cambiar la corriente, el ruido y los parámetros de membrana; comparar la curva f–I simulada con la analítica; ver la reobase, la saturación refractaria y el disparo irregular por ruido (histograma de ISI, CV) |
+| [Hodgkin–Huxley: la neurona como sistema dinámico](https://hiroforyou.github.io/computational-neuroscience/interactive/hodgkin-huxley.html) | Ajustar el estímulo y las conductancias; explorar potenciales de acción, compuertas de canales, corrientes iónicas, espacio de fase y frecuencia de disparo |
+| [Sinapsis: suma temporal y detección de coincidencias](https://hiroforyou.github.io/computational-neuroscience/interactive/sinapsis.html) | Variar las constantes de tiempo sináptica y de membrana, el intervalo de la ráfaga y el peso; comparar el pico simulado con la fórmula de la serie geométrica; ver cuándo la suma hace disparar a un LIF postsináptico |
+| [Sistemas lineales 2D: puntos fijos y estabilidad](https://hiroforyou.github.io/computational-neuroscience/interactive/sistemas-lineales.html) | Editar una matriz 2×2 o hacer clic en el plano traza–determinante; lanzar trayectorias en el plano de fase; ver autovalores, autovectores, nullclines y la clasificación (foco, nodo, silla, centro) |
+| [Wilson–Cowan: excitación, inhibición y oscilaciones](https://hiroforyou.github.io/computational-neuroscience/interactive/wilson-cowan.html) | Ajustar la entrada y las conexiones E/I; encontrar y clasificar puntos fijos en las nullclines; explorar actividad baja, oscilaciones de ciclo límite, biestabilidad y el diagrama de bifurcación |
+| [Red de Hopfield: memoria como paisaje de energía](https://hiroforyou.github.io/computational-neuroscience/interactive/hopfield.html) | Guardar y recuperar patrones, añadir ruido e inspeccionar la energía, los solapamientos, los pesos sinápticos, las reglas de actualización y la capacidad de memoria |
+| [Trenes de spikes Poisson: azar y variabilidad](https://hiroforyou.github.io/computational-neuroscience/interactive/poisson.html) | Cambiar la tasa, la ventana, las repeticiones y el refractario; comparar histogramas de conteos e ISI con la teoría; factor de Fano, CV y convergencia de la tasa estimada con más ensayos |
+| [Decisión bayesiana: percibir con ruido](https://hiroforyou.github.io/computational-neuroscience/interactive/decision-bayesiana.html) | Cambiar el ruido, la separación y el prior; arrastrar la frontera de decisión; ver las áreas de error, la posterior y el acierto simulado frente al teórico (Φ(d′/2)) |
+
+### Capturas
+
+Estado inicial de cada módulo (tema claro). Haz clic en una imagen para abrir el módulo.
+
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <a href="https://hiroforyou.github.io/computational-neuroscience/interactive/lif.html"><img src="docs/images/interactive-lif.webp" alt="Neurona LIF" width="100%"></a><br>
+      <sub><b>Neurona LIF</b></sub>
+    </td>
+    <td width="50%" align="center">
+      <a href="https://hiroforyou.github.io/computational-neuroscience/interactive/hodgkin-huxley.html"><img src="docs/images/interactive-hodgkin-huxley.webp" alt="Hodgkin–Huxley" width="100%"></a><br>
+      <sub><b>Hodgkin–Huxley</b></sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <a href="https://hiroforyou.github.io/computational-neuroscience/interactive/sinapsis.html"><img src="docs/images/interactive-sinapsis.webp" alt="Sinapsis" width="100%"></a><br>
+      <sub><b>Sinapsis</b></sub>
+    </td>
+    <td width="50%" align="center">
+      <a href="https://hiroforyou.github.io/computational-neuroscience/interactive/sistemas-lineales.html"><img src="docs/images/interactive-sistemas-lineales.webp" alt="Sistemas lineales 2D" width="100%"></a><br>
+      <sub><b>Sistemas lineales 2D</b></sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <a href="https://hiroforyou.github.io/computational-neuroscience/interactive/wilson-cowan.html"><img src="docs/images/interactive-wilson-cowan.webp" alt="Wilson–Cowan" width="100%"></a><br>
+      <sub><b>Wilson–Cowan</b></sub>
+    </td>
+    <td width="50%" align="center">
+      <a href="https://hiroforyou.github.io/computational-neuroscience/interactive/hopfield.html"><img src="docs/images/interactive-hopfield.webp" alt="Red de Hopfield" width="100%"></a><br>
+      <sub><b>Red de Hopfield</b></sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <a href="https://hiroforyou.github.io/computational-neuroscience/interactive/poisson.html"><img src="docs/images/interactive-poisson.webp" alt="Trenes de spikes Poisson" width="100%"></a><br>
+      <sub><b>Trenes de spikes Poisson</b></sub>
+    </td>
+    <td width="50%" align="center">
+      <a href="https://hiroforyou.github.io/computational-neuroscience/interactive/decision-bayesiana.html"><img src="docs/images/interactive-decision-bayesiana.webp" alt="Decisión bayesiana" width="100%"></a><br>
+      <sub><b>Decisión bayesiana</b></sub>
+    </td>
+  </tr>
+</table>
 
 ## Cómo empezar
 
-Los módulos actuales no requieren instalación ni compilación. Abre cualquiera de los archivos HTML en un navegador moderno y experimenta con sus controles. Las simulaciones se ejecutan en el navegador.
+Los módulos interactivos no requieren instalación: usa la [versión en línea](https://hiroforyou.github.io/computational-neuroscience/interactive/) o abre cualquiera de los archivos HTML de `interactive/` en un navegador moderno.
 
-## Método de estudio sugerido
+Para ejecutar los experimentos Python (Python 3.10 o superior):
+
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e ".[dev]"
+python -m pytest
+python examples/run_models.py
+```
+
+`run_models.py` guarda las trazas de LIF y Hodgkin–Huxley en archivos NumPy `.npz`, dentro de la carpeta ignorada `outputs/`, e imprime los resultados de recuperación Hopfield y análisis básicos. Si no necesitas las pruebas, basta con instalar `.[examples]`.
+
+Para ejecutar el script de cualquier semana del roadmap:
+
+```powershell
+python weeks/run_weekly.py --list
+python weeks/run_weekly.py 1
+```
+
+Cada semana guarda figuras/datos/informe en su propia carpeta `weeks/week_XX_<tema>/outputs/`, ignorada por Git (con la variable `COMPUTATIONAL_NEUROSCIENCE_OUTPUT_DIR` se pueden escribir en otro lugar). La [ruta semana a semana](docs/ruta-de-aprendizaje.md) relaciona cada script con su objetivo de aprendizaje.
+
+### Notebooks
+
+Cada carpeta de semana contiene el script y su notebook, uno al lado del otro:
+
+```text
+weeks/week_03_lif_currents/
+├── week_03_lif_currents.py      # fuente: se edita aquí
+├── week_03_lif_currents.ipynb   # generado y ejecutado (teoría, ecuaciones, figuras)
+└── outputs/                     # .png, .npz, informes (ignorado por Git)
+```
+
+Abre el notebook (VS Code, JupyterLab o GitHub) para leer la teoría y ver las figuras sin ejecutar nada. El notebook se genera desde las celdas `# %%` del script:
+
+```powershell
+python tools/convert_to_notebooks.py --execute            # regenera los 18, con figuras
+python tools/convert_from_notebooks.py weeks/week_03_lif_currents/week_03_lif_currents.ipynb   # lleva cambios del notebook al script
+```
+
+Edita el script (o el notebook y conviértelo de vuelta) y regenera. Un test falla si algún notebook queda desactualizado.
+
+## Método de estudio
 
 1. Lee la explicación del modelo e identifica sus supuestos.
 2. Predice cómo cambiará el sistema al modificar un parámetro.
-3. Ejecuta un experimento y compara el resultado con tu predicción.
+3. Ejecuta el experimento y compara el resultado con tu predicción.
 4. Explica el resultado con tus propias palabras y anota qué aspectos no representa el modelo.
-5. Cuando el tema lo requiera, reproduce el experimento con código y conserva un registro reproducible.
+5. Conserva el código, los parámetros, las unidades y las limitaciones para poder reproducir el resultado.
 
 ## Estructura del proyecto
 
 ```text
 computational-neuroscience/
-├── Hodgkin–Huxley_ la neurona como sistema dinámico.html
-├── Red de Hopfield_ memoria como paisaje de energía.html
-├── README.md
-├── README.es.md
+├── interactive/                     # Módulos para el navegador (sin instalación)
+│   ├── index.html                   # Página de inicio para GitHub Pages
+│   ├── lif.html                     # Semana 3: neurona LIF y curva f–I
+│   ├── hodgkin-huxley.html          # Semanas 4–5
+│   ├── sinapsis.html                # Semana 6: suma temporal
+│   ├── sistemas-lineales.html       # Semana 7: puntos fijos y estabilidad
+│   ├── wilson-cowan.html            # Semana 8: poblaciones E–I
+│   ├── hopfield.html                # Semana 9
+│   ├── poisson.html                 # Semana 10: variabilidad de trenes de spikes
+│   └── decision-bayesiana.html      # Semana 17: decisión bayesiana
+├── src/computational_neuroscience/  # Paquete Python
+│   ├── lif.py                       # Leaky integrate-and-fire y curva f-I analítica
+│   ├── hodgkin_huxley.py            # Hodgkin–Huxley (Euler explícito)
+│   ├── hopfield.py                  # Entrenamiento Hebbiano y recuperación asíncrona
+│   ├── analysis.py                  # Ajuste lineal, GLM Poisson, PCA
+│   ├── outputs.py                   # Guarda figuras/datos para scripts y notebooks (matplotlib)
+│   └── _validation.py               # Rejillas temporales, corrientes, current_pulse
+├── examples/
+│   └── run_models.py                # Experimentos iniciales con todos los modelos
+├── weeks/
+│   ├── run_weekly.py                # Lanzador: python weeks/run_weekly.py <semana>
+│   ├── week_01_python_reproducibility/  # script .py + notebook .ipynb + outputs/
+│   ├── …
+│   └── week_18_capstone/
+├── tools/                           # convert_to_notebooks.py / convert_from_notebooks.py
+├── tests/
+│   ├── test_models.py               # Comportamiento numérico y validación de entradas
+│   └── test_weekly_scripts.py       # Cada script corre y valida; notebooks sincronizados
+├── docs/
+│   ├── ruta-de-aprendizaje.md       # Ruta semana a semana y enlaces a cursos
+│   └── images/                      # Capturas de los módulos interactivos para el README
+├── .github/workflows/pages.yml      # Publica interactive/ en GitHub Pages
+├── pyproject.toml
+├── README.md / README.es.md
 └── .gitignore
 ```
 
 ## Idioma
 
-Los módulos interactivos actuales están en español. Este README está disponible en [inglés](README.md) y español.
+Los módulos interactivos y el roadmap detallado están en español. Este README está disponible en [inglés](README.md) y español.
 
 ## Alcance
 

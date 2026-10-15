@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neurociencia computacional interactiva</title>
+<meta name="description" content="Módulos interactivos de neurociencia computacional: LIF, Hodgkin–Huxley, sinapsis, sistemas lineales, Wilson–Cowan, Hopfield, Poisson y decisión bayesiana.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;500;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEECE6; --surface:#FAF9F6; --ink:#24221E; --muted:#6B665C; --line:#DCD8CE; --accent:#1F5C7A;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141412; --surface:#1C1C19; --ink:#E7E4DC; --muted:#A39E92; --line:#2E2D29; --accent:#7CC3E6;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141412; --surface:#1C1C19; --ink:#E7E4DC; --muted:#A39E92; --line:#2E2D29; --accent:#7CC3E6;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Work Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1120px;margin:0 auto;padding:40px 16px 60px}
+h1{font-family:Spectral,Georgia,serif;font-weight:500;font-size:clamp(30px,4.2vw,46px);line-height:1.08;margin:0 0 10px}
+header p{margin:0;color:var(--muted);max-width:68ch}
+header a,footer a{color:var(--accent)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;margin-top:32px}
+.card{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden;color:inherit;text-decoration:none;transition:border-color .15s,transform .15s}
+.card:hover,.card:focus-visible{border-color:var(--accent);transform:translateY(-2px)}
+.card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.card img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;object-position:top;border-bottom:1px solid var(--line);background:var(--line)}
+.card div{padding:14px 16px 16px}
+.card h2{font-family:Spectral,Georgia,serif;font-weight:500;font-size:19px;line-height:1.2;margin:0 0 6px}
+.card p{margin:0;color:var(--muted);font-size:14px}
+.week{display:inline-block;font-size:12px;font-weight:600;color:var(--accent);margin-bottom:4px}
+footer{margin-top:40px;color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Neurociencia computacional interactiva</h1>
+    <p>Módulos para explorar modelos neuronales en el navegador: cambia parámetros, predice el resultado y compáralo con la simulación. Forman parte de una <a href="https://github.com/HiroForYou/computational-neuroscience">ruta de autoaprendizaje</a> con código Python, notebooks y tests.</p>
+  </header>
+
+  <main class="grid">
+    <a class="card" href="lif.html">
+      <img src="../docs/images/interactive-lif.webp" alt="" loading="lazy">
+      <div><span class="week">Semana 3</span><h2>Neurona LIF</h2><p>Integrar, disparar y reiniciar. Curva f–I simulada frente a la analítica, reobase y disparo irregular por ruido.</p></div>
+    </a>
+    <a class="card" href="hodgkin-huxley.html">
+      <img src="../docs/images/interactive-hodgkin-huxley.webp" alt="" loading="lazy">
+      <div><span class="week">Semanas 4–5</span><h2>Hodgkin–Huxley</h2><p>La neurona como sistema dinámico: potenciales de acción, compuertas, corrientes iónicas y espacio de fase.</p></div>
+    </a>
+    <a class="card" href="sinapsis.html">
+      <img src="../docs/images/interactive-sinapsis.webp" alt="" loading="lazy">
+      <div><span class="week">Semana 6</span><h2>Sinapsis</h2><p>Suma temporal y detección de coincidencias en un LIF postsináptico.</p></div>
+    </a>
+    <a class="card" href="sistemas-lineales.html">
+      <img src="../docs/images/interactive-sistemas-lineales.webp" alt="" loading="lazy">
+      <div><span class="week">Semana 7</span><h2>Sistemas lineales 2D</h2><p>Puntos fijos y estabilidad: plano traza–determinante, autovalores y trayectorias.</p></div>
+    </a>
+    <a class="card" href="wilson-cowan.html">
+      <img src="../docs/images/interactive-wilson-cowan.webp" alt="" loading="lazy">
+      <div><span class="week">Semana 8</span><h2>Wilson–Cowan</h2><p>Excitación, inhibición y oscilaciones: nullclines, ciclos límite, biestabilidad y bifurcaciones.</p></div>
+    </a>
+    <a class="card" href="hopfield.html">
+      <img src="../docs/images/interactive-hopfield.webp" alt="" loading="lazy">
+      <div><span class="week">Semana 9</span><h2>Red de Hopfield</h2><p>Memoria como paisaje de energía: guardar, recuperar y degradar patrones.</p></div>
+    </a>
+    <a class="card" href="poisson.html">
+      <img src="../docs/images/interactive-poisson.webp" alt="" loading="lazy">
+      <div><span class="week">Semana 10</span><h2>Trenes de spikes Poisson</h2><p>Azar y variabilidad: histogramas de conteos e ISI, factor de Fano y CV.</p></div>
+    </a>
+    <a class="card" href="decision-bayesiana.html">
+      <img src="../docs/images/interactive-decision-bayesiana.webp" alt="" loading="lazy">
+      <div><span class="week">Semana 17</span><h2>Decisión bayesiana</h2><p>Percibir con ruido: prior, posterior, frontera de decisión y acierto Φ(d′/2).</p></div>
+    </a>
+  </main>
+
+  <footer>Código fuente y ruta completa en <a href="https://github.com/HiroForYou/computational-neuroscience">GitHub</a>.</footer>
+</div>
+</body>
+</html>

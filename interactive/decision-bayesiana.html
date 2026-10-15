@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Decisión bayesiana: percibir con ruido</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#ECECF0; --surface:#F9F9FB; --ink:#22222C; --muted:#61616F; --grid:#D7D7DF; --axis:#A2A2B0;
+  --L:#2E66B8; --R:#C4572B; --post:#22222C; --bound:#7A3FA8; --err:#C4572B; --sim:#C48A12;
+  --focus:#7A3FA8;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121218; --surface:#1A1A22; --ink:#E3E3EA; --muted:#9C9CAC; --grid:#2A2A35; --axis:#55556A;
+    --L:#7FAEF2; --R:#F29A72; --post:#E3E3EA; --bound:#C59AF0; --err:#F29A72; --sim:#EDC15A; --focus:#C59AF0;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121218; --surface:#1A1A22; --ink:#E3E3EA; --muted:#9C9CAC; --grid:#2A2A35; --axis:#55556A;
+  --L:#7FAEF2; --R:#F29A72; --post:#E3E3EA; --bound:#C59AF0; --err:#F29A72; --sim:#EDC15A; --focus:#C59AF0;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1280px;margin:0 auto;padding:28px 20px 60px}
+header{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px 40px;align-items:end;margin-bottom:26px}
+h1{font-family:"EB Garamond",Georgia,serif;font-weight:500;font-size:clamp(32px,4.4vw,54px);line-height:1.02;margin:0;letter-spacing:-.01em}
+h1 small{display:block;font-size:.46em;color:var(--muted);font-weight:400;margin-top:8px;letter-spacing:0}
+header p{margin:0;color:var(--muted);max-width:60ch;font-size:15px}
+h2{font-family:"EB Garamond",Georgia,serif;font-weight:500;font-size:24px;margin:0 0 4px}
+h3{font-size:14px;font-weight:600;margin:0 0 8px}
+.layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;align-items:start}
+aside{background:var(--surface);border-radius:14px;padding:18px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+.panel{background:var(--surface);border-radius:14px;padding:16px 16px 12px}
+.stack{display:grid;gap:14px}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.cap{color:var(--muted);font-size:13.5px;margin:2px 0 10px;max-width:72ch}
+canvas{display:block;width:100%;touch-action:pan-y}
+#cd{cursor:crosshair}
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
+.presets button{font:inherit;font-size:13px;border:1px solid var(--grid);background:transparent;color:var(--ink);border-radius:999px;padding:5px 11px;cursor:pointer}
+.presets button:hover{border-color:var(--axis)}
+.presets button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+fieldset{border:0;padding:0;margin:0 0 16px}
+legend{font-weight:600;font-size:14px;margin-bottom:8px;padding:0}
+.ctl{margin-bottom:10px}
+.ctl label{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:2px}
+.ctl output{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--bound)}
+.btns{display:flex;gap:8px}
+.btn{font:inherit;font-size:14px;font-weight:500;flex:1;padding:9px 10px;border-radius:9px;border:0;cursor:pointer;background:var(--bound);color:var(--surface)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--grid)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted);margin-bottom:6px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.readout{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:8px 0 2px}
+.readout div{font-size:12.5px;color:var(--muted)}
+.readout b{display:block;font-size:19px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
+.readout small{color:var(--muted);font-size:12px}
+.theory{margin-top:34px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+.theory .panel{padding:20px 22px}
+.theory p,.theory li{font-family:"EB Garamond",Georgia,serif;font-size:18.5px;line-height:1.5;max-width:68ch}
+.theory ul{padding-left:20px;margin:8px 0}
+.eq{font-family:"EB Garamond",Georgia,serif;font-size:18.5px;background:var(--bg);border-radius:10px;padding:12px 14px;margin:10px 0;overflow-x:auto;white-space:nowrap;line-height:1.8}
+.note{font-size:13px;color:var(--muted)}
+.themebtn{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);font:inherit;font-size:13px;border:1px solid var(--grid);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 12px;cursor:pointer}
+@media (max-width:980px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  aside{position:static}
+  header,.theory,.row2{grid-template-columns:minmax(0,1fr)}
+  .readout{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Decisión bayesiana<small>Percibir y decidir con observaciones ruidosas</small></h1>
+  <p>Un estímulo está a la izquierda o a la derecha, pero el cerebro solo recibe una medida ruidosa x. El observador ideal combina lo que espera (el prior) con lo que observa (la verosimilitud) y elige el lado más probable. Cambia el ruido y el prior, mueve la frontera a mano y compara con la decisión óptima.</p>
+</header>
+
+<div class="layout">
+<aside>
+  <h3>Experimentos</h3>
+  <div class="presets" id="presets">
+    <button data-p="base" aria-pressed="true">Priors iguales</button>
+    <button data-p="prior">Prior sesgado</button>
+    <button data-p="noisy">Mucho ruido</button>
+    <button data-p="easy">Tarea fácil</button>
+    <button data-p="manual">Frontera subóptima</button>
+  </div>
+
+  <fieldset>
+    <legend>Mundo</legend>
+    <div class="ctl"><label for="mu"><span>Separación ±μ</span> <output id="o-mu"></output></label><input id="mu" type="range" min="0.1" max="3" step="0.05"></div>
+    <div class="ctl"><label for="sigma"><span>Ruido σ</span> <output id="o-sigma"></output></label><input id="sigma" type="range" min="0.2" max="4" step="0.05"></div>
+    <div class="ctl"><label for="pR"><span>Prior P(derecha)</span> <output id="o-pR"></output></label><input id="pR" type="range" min="0.05" max="0.95" step="0.01"></div>
+  </fieldset>
+  <fieldset>
+    <legend>Observador</legend>
+    <div class="ctl"><label for="shift"><span>Desplazamiento de la frontera</span> <output id="o-shift"></output></label><input id="shift" type="range" min="-3" max="3" step="0.05"></div>
+    <p class="note">0 = frontera óptima x*. También puedes arrastrar la frontera en la primera gráfica.</p>
+  </fieldset>
+
+  <div class="btns">
+    <button class="btn" id="seed">Nuevos ensayos</button>
+    <button class="btn ghost" id="reset">Valores originales</button>
+  </div>
+</aside>
+
+<main class="stack">
+  <section class="panel">
+    <h2>Verosimilitudes ponderadas por el prior</h2>
+    <p class="cap" id="cap"></p>
+    <div class="legend"><span><i style="background:var(--L)"></i>p(x | izquierda)·P(izquierda)</span><span><i style="background:var(--R)"></i>p(x | derecha)·P(derecha)</span><span><i style="background:var(--bound)"></i>frontera usada</span><span><i style="background:var(--axis)"></i>frontera óptima x*</span></div>
+    <canvas id="cd" height="260" aria-label="Verosimilitudes y frontera de decisión"></canvas>
+    <div class="readout">
+      <div>Frontera óptima x*<b id="r-xs">–</b></div>
+      <div>d′ = 2μ/σ<b id="r-dp">–</b></div>
+      <div>Acierto con la frontera usada<b id="r-acc">–</b><small id="r-acc-o"></small></div>
+      <div>Acierto simulado<b id="r-sim">–</b><small id="r-sim-n"></small></div>
+    </div>
+  </section>
+
+  <div class="row2">
+    <section class="panel">
+      <h2>Posterior P(derecha | x)</h2>
+      <p class="cap">La probabilidad de que el estímulo esté a la derecha tras observar x. El observador óptimo elige derecha cuando supera 0,5. Los puntos son 200 ensayos simulados (arriba: el estímulo era derecha; abajo: izquierda).</p>
+      <canvas id="cp" height="250" aria-label="Probabilidad posterior"></canvas>
+    </section>
+    <section class="panel">
+      <h2>Acierto frente al ruido</h2>
+      <p class="cap">Acierto del observador óptimo para cada σ (línea) y simulado con 2000 ensayos (puntos), con los demás parámetros fijos. El punto grande es el σ actual.</p>
+      <div class="legend"><span><i style="background:var(--post)"></i>teoría</span><span><i style="background:var(--sim)"></i>simulación</span></div>
+      <canvas id="ca" height="250" aria-label="Acierto frente al ruido"></canvas>
+    </section>
+  </div>
+</main>
+</div>
+
+<section class="theory">
+  <div class="panel">
+    <h2>Las ecuaciones</h2>
+    <p>El estímulo s ∈ {izquierda, derecha} tiene medias −μ y +μ. La observación es x ~ 𝒩(±μ, σ²). Por la regla de Bayes:</p>
+    <div class="eq">P(D | x) = p(x | D) P(D) / [ p(x | D) P(D) + p(x | I) P(I) ] = 1 / (1 + e<sup>−ℓ(x)</sup>)</div>
+    <div class="eq">ℓ(x) = log [p(x | D) / p(x | I)] + log [P(D) / P(I)] = 2μx / σ² + log [P(D) / P(I)]</div>
+    <p>Elegir el lado con mayor posterior (minimiza los errores) equivale a una frontera en x:</p>
+    <div class="eq">x* = (σ² / 2μ) · log [ P(I) / P(D) ]</div>
+    <p>La probabilidad de acierto con una frontera c es</p>
+    <div class="eq">P(acierto) = P(I) Φ((c + μ)/σ) + P(D) [1 − Φ((c − μ)/σ)]</div>
+    <p class="note">Φ es la distribución normal acumulada. Con priors iguales, x* = 0 y P(acierto) = Φ(d′/2), con d′ = 2μ/σ.</p>
+  </div>
+  <div class="panel">
+    <h2>Qué observar</h2>
+    <ul>
+      <li><b>El prior mueve la frontera.</b> Si “derecha” es más frecuente, conviene exigir menos evidencia para elegirla: x* se desplaza hacia la izquierda. El desplazamiento crece con σ²: cuanto más ruidosa la observación, más pesa lo que ya se esperaba.</li>
+      <li><b>Las áreas sombreadas son los errores.</b> La frontera óptima está justo donde se cruzan las dos curvas: cualquier otra posición agranda el área total de error. Muévela y observa cómo baja el acierto.</li>
+      <li><b>d′ resume la dificultad.</b> Solo importa la separación relativa al ruido: duplicar μ y σ a la vez no cambia nada.</li>
+      <li><b>Datos reales.</b> En psicofísica se ajusta este modelo a las elecciones de un sujeto para estimar su ruido sensorial y su sesgo. Los sujetos reales se desvían del óptimo por lapsos, sesgos y priors mal calibrados.</li>
+    </ul>
+  </div>
+</section>
+
+<button class="themebtn" id="theme" aria-label="Cambiar tema">Tema</button>
+
+<script>
+(function(){
+"use strict";
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function gaussian(rng){let u=0,v=0;while(u===0)u=rng();while(v===0)v=rng();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function erf(x){const s=Math.sign(x);x=Math.abs(x);const t=1/(1+0.3275911*x);const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);return s*y;}
+const Phi=z=>0.5*(1+erf(z/Math.SQRT2));
+const pdf=(x,m,s)=>Math.exp(-((x-m)**2)/(2*s*s))/(s*Math.sqrt(2*Math.PI));
+const DEF={mu:1,sigma:1.2,pR:0.5,shift:0};
+const PRESETS={base:{},prior:{pR:0.8},noisy:{sigma:3},easy:{sigma:0.4},manual:{shift:1.2}};
+const CAPS={
+  base:'Con priors iguales, la frontera óptima está en x = 0, donde se cruzan las dos curvas. Las zonas sombreadas son los errores: observaciones que caen del lado equivocado.',
+  prior:'Con P(derecha) = 0,8, la curva naranja es más alta y la frontera óptima se desplaza a la izquierda: se elige “derecha” con menos evidencia.',
+  noisy:'Con σ = 3 las distribuciones se solapan mucho: incluso el observador óptimo acierta solo un 63 %.',
+  easy:'Con σ = 0,4 casi no hay solapamiento: el observador óptimo acierta más del 99 % de las veces.',
+  manual:'La frontera está desplazada 1,2 a la derecha del óptimo: crece el área de error naranja (estímulos a la derecha clasificados como izquierda) y el acierto baja.'
+};
+let P={...DEF}, seed=17, trials=null, accSim=null;
+const $=id=>document.getElementById(id);
+const fmt=(v,d=2)=>(Math.round(v*10**d)/10**d).toLocaleString('es',{minimumFractionDigits:d,maximumFractionDigits:d});
+const units={mu:v=>fmt(v),sigma:v=>fmt(v),pR:v=>fmt(v),shift:v=>(v>0?'+':'')+fmt(v)};
+const KEYS=Object.keys(units);
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function syncUI(){KEYS.forEach(k=>{$(k).value=P[k];$('o-'+k).textContent=units[k](P[k]);});}
+
+// ---------- Modelo ----------
+function optimal(p){return p.sigma*p.sigma/(2*p.mu)*Math.log((1-p.pR)/p.pR);}
+function boundary(p){return optimal(p)+p.shift;}
+function accuracy(p,c){return (1-p.pR)*Phi((c+p.mu)/p.sigma)+p.pR*(1-Phi((c-p.mu)/p.sigma));}
+function posterior(p,x){const l=2*p.mu*x/(p.sigma*p.sigma)+Math.log(p.pR/(1-p.pR));return 1/(1+Math.exp(-l));}
+function simulateTrials(p,n,s){const rng=mulberry32(s),out=[];for(let k=0;k<n;k++){const right=rng()<p.pR;out.push({right,x:(right?p.mu:-p.mu)+p.sigma*gaussian(rng)});}return out;}
+function simAccuracy(p,n,s){const c=boundary(p);let ok=0;simulateTrials(p,n,s).forEach(t=>{if((t.x>c)===t.right)ok++;});return ok/n;}
+
+// ---------- Gráficas ----------
+function prep(cv){
+  const dpr=window.devicePixelRatio||1, w=cv.clientWidth, h=+cv.getAttribute('height');
+  if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px';}
+  const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);return {c,w,h};
+}
+const PAD={l:46,r:12,t:8,b:22};
+function ticks(a,b,n){const span=b-a, step0=span/n, mag=10**Math.floor(Math.log10(step0)), s=[1,2,5,10].map(f=>f*mag).find(f=>f>=step0);const out=[];for(let v=Math.ceil(a/s)*s;v<=b+1e-9;v+=s)out.push(+v.toFixed(6));return out;}
+function frame(g,xr,yr,o={}){
+  const {c,w,h}=g, pad={...PAD,...(o.pad||{})};
+  const X=x=>pad.l+(x-xr[0])/(xr[1]-xr[0])*(w-pad.l-pad.r), Y=y=>h-pad.b-(y-yr[0])/(yr[1]-yr[0])*(h-pad.t-pad.b);
+  c.font='11px "Plus Jakarta Sans", system-ui, sans-serif';c.textBaseline='middle';c.strokeStyle=css('--grid');c.fillStyle=css('--muted');c.lineWidth=1;
+  (o.yt||[]).forEach(v=>{const y=Math.round(Y(v))+.5;c.beginPath();c.moveTo(pad.l,y);c.lineTo(w-pad.r,y);c.stroke();c.textAlign='right';c.fillText(o.yf?o.yf(v):fmt(v,v%1?1:0),pad.l-6,y);});
+  if(o.xt!==false){const xt=o.xt||ticks(xr[0],xr[1],w>500?10:5);c.textAlign='center';c.textBaseline='top';xt.forEach(v=>c.fillText(fmt(v,v%1?1:0),X(v),h-pad.b+5));c.textBaseline='middle';}
+  if(o.xl){c.textAlign='right';c.textBaseline='bottom';c.fillText(o.xl,w-pad.r,h-pad.b-3);c.textBaseline='middle';}
+  if(o.yl){c.save();c.translate(10,(h-pad.b+pad.t)/2);c.rotate(-Math.PI/2);c.textAlign='center';c.fillText(o.yl,0,0);c.restore();}
+  return {X,Y,pad,xr,yr};
+}
+function line(g,f,xs,ys,color,lw=1.8,dash){const {c}=g;c.strokeStyle=color;c.lineWidth=lw;c.setLineDash(dash||[]);c.lineJoin='round';c.beginPath();xs.forEach((x,i)=>{const px=f.X(x),py=f.Y(ys[i]);i?c.lineTo(px,py):c.moveTo(px,py);});c.stroke();c.setLineDash([]);}
+function vline(g,f,x,color,lw,dash){const {c,h}=g;c.strokeStyle=color;c.lineWidth=lw;c.setLineDash(dash||[]);c.beginPath();c.moveTo(f.X(x),f.pad.t);c.lineTo(f.X(x),h-f.pad.b);c.stroke();c.setLineDash([]);}
+function xRange(){const r=Math.max(3.5,P.mu+3.5*P.sigma);return [-r,r];}
+let distF=null;
+
+function drawDist(){
+  const g=prep($('cd')),c=g.c,xr=xRange(),N=500,xs=[],L=[],R=[];
+  for(let i=0;i<=N;i++){const x=xr[0]+(xr[1]-xr[0])*i/N;xs.push(x);L.push((1-P.pR)*pdf(x,-P.mu,P.sigma));R.push(P.pR*pdf(x,P.mu,P.sigma));}
+  const top=Math.max(...L,...R)*1.12, f=frame(g,xr,[0,top],{yt:ticks(0,top,4),yf:v=>fmt(v,2),xl:'observación x'});distF=f;
+  const cb=boundary(P), shade=(ys,col,cond)=>{c.fillStyle=col;c.globalAlpha=.28;c.beginPath();let on=false;
+    xs.forEach((x,i)=>{if(cond(x)){if(!on){c.moveTo(f.X(x),f.Y(0));on=true;}c.lineTo(f.X(x),f.Y(ys[i]));}});
+    if(on){const lastX=xs.filter(cond).pop();c.lineTo(f.X(lastX),f.Y(0));c.closePath();c.fill();}c.globalAlpha=1;};
+  shade(L,css('--L'),x=>x>cb);shade(R,css('--R'),x=>x<cb);
+  line(g,f,xs,L,css('--L'),2);line(g,f,xs,R,css('--R'),2);
+  vline(g,f,optimal(P),css('--axis'),1.4,[5,4]);vline(g,f,cb,css('--bound'),2.2);
+  c.fillStyle=css('--bound');c.textAlign='left';c.fillText('elige derecha →',Math.min(f.X(cb)+6,g.w-100),f.pad.t+10);c.textAlign='right';c.fillText('← elige izquierda',Math.max(f.X(cb)-6,f.pad.l+100),f.pad.t+10);
+}
+function drawPost(){
+  const g=prep($('cp')),c=g.c,xr=xRange(),f=frame(g,xr,[-0.08,1.08],{yt:[0,0.5,1],yf:v=>fmt(v,1),xl:'x'});
+  const xs=[],ys=[];for(let i=0;i<=400;i++){const x=xr[0]+(xr[1]-xr[0])*i/400;xs.push(x);ys.push(posterior(P,x));}
+  vline(g,f,optimal(P),css('--axis'),1.4,[5,4]);vline(g,f,boundary(P),css('--bound'),2);
+  line(g,f,xs,ys,css('--post'),2.2);
+  const cb=boundary(P);
+  trials.slice(0,200).forEach((t,i)=>{const y=t.right?1.03:-0.03, ok=(t.x>cb)===t.right;c.fillStyle=t.right?css('--R'):css('--L');c.globalAlpha=ok?0.45:1;
+    c.beginPath();if(ok)c.arc(f.X(t.x),f.Y(y)+((i%5)-2)*1.4,2.3,0,7);else{c.rect(f.X(t.x)-2.6,f.Y(y)+((i%5)-2)*1.4-2.6,5.2,5.2);}c.fill();});
+  c.globalAlpha=1;c.fillStyle=css('--muted');c.textAlign='left';c.fillText('cuadrados = errores',f.pad.l+4,f.Y(0.5)+12);
+}
+function drawAcc(){
+  const g=prep($('ca')),c=g.c,xs=[],ys=[];for(let s=0.2;s<=4.0001;s+=0.02){xs.push(s);const q={...P,sigma:s};ys.push(accuracy(q,optimal(q)));}
+  const f=frame(g,[0.2,4],[0.45,1.02],{yt:[0.5,0.6,0.7,0.8,0.9,1],yf:v=>fmt(v,1),xl:'σ',yl:'acierto'});
+  c.strokeStyle=css('--axis');c.setLineDash([3,4]);c.beginPath();const yb=f.Y(Math.max(P.pR,1-P.pR));c.moveTo(f.pad.l,yb);c.lineTo(g.w-f.pad.r,yb);c.stroke();c.setLineDash([]);
+  c.fillStyle=css('--muted');c.textAlign='right';c.fillText('responder siempre lo más probable',g.w-f.pad.r-4,yb-8);
+  line(g,f,xs,ys,css('--post'),2);
+  if(accSim){c.fillStyle=css('--sim');accSim.forEach(([s,a])=>{c.beginPath();c.arc(f.X(s),f.Y(a),3.2,0,7);c.fill();});}
+  const q={...P};c.fillStyle=css('--bound');c.strokeStyle=css('--surface');c.lineWidth=2;c.beginPath();c.arc(f.X(P.sigma),f.Y(accuracy(q,optimal(q))),6,0,7);c.fill();c.stroke();
+}
+function updateReadout(){
+  const xs=optimal(P), cb=boundary(P), acc=accuracy(P,cb), best=accuracy(P,xs);
+  $('r-xs').textContent=fmt(xs);$('r-dp').textContent=fmt(2*P.mu/P.sigma);
+  $('r-acc').textContent=fmt(acc*100,1)+' %';$('r-acc-o').textContent=P.shift===0?'(es la óptima)':'óptima: '+fmt(best*100,1)+' %';
+  const sa=simAccuracy(P,2000,seed+1);$('r-sim').textContent=fmt(sa*100,1)+' %';$('r-sim-n').textContent='2000 ensayos, ± '+fmt(100*Math.sqrt(acc*(1-acc)/2000),1)+' %';
+}
+function drawAll(){if(!trials)return;drawDist();drawPost();drawAcc();updateReadout();}
+function run(){
+  trials=simulateTrials(P,200,seed);
+  accSim=[0.25,0.5,0.75,1,1.5,2,2.5,3,3.5,4].map((s,i)=>{const q={...P,sigma:s,shift:0};return [s,simAccuracy(q,2000,seed+100+i)];});
+  drawAll();
+}
+
+// ---------- Eventos ----------
+function setPreset(name){
+  P={...DEF,...PRESETS[name]};
+  document.querySelectorAll('#presets button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.p===name));
+  $('cap').textContent=CAPS[name];syncUI();run();
+}
+function clearPreset(){document.querySelectorAll('#presets button').forEach(b=>b.setAttribute('aria-pressed','false'));$('cap').textContent='Parámetros modificados. Las zonas sombreadas son los errores con la frontera usada; su área total es 1 − acierto.';}
+document.querySelectorAll('#presets button').forEach(b=>b.addEventListener('click',()=>setPreset(b.dataset.p)));
+KEYS.forEach(k=>$(k).addEventListener('input',e=>{P[k]=+e.target.value;$('o-'+k).textContent=units[k](P[k]);clearPreset();run();}));
+let dragging=false;
+function dragTo(e){const r=$('cd').getBoundingClientRect(),F=distF;const x=F.xr[0]+(e.clientX-r.left-F.pad.l)/(r.width-F.pad.l-F.pad.r)*(F.xr[1]-F.xr[0]);
+  P.shift=Math.max(-3,Math.min(3,Math.round((x-optimal(P))*20)/20));syncUI();clearPreset();drawAll();}
+$('cd').addEventListener('pointerdown',e=>{dragging=true;$('cd').setPointerCapture(e.pointerId);dragTo(e);});
+$('cd').addEventListener('pointermove',e=>{if(dragging)dragTo(e);});
+['pointerup','pointercancel'].forEach(t=>$('cd').addEventListener(t,()=>{dragging=false;}));
+$('seed').addEventListener('click',()=>{seed=Math.floor(Math.random()*1e6);run();});
+$('reset').addEventListener('click',()=>setPreset('base'));
+let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(drawAll,80);});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',drawAll);
+$('theme').addEventListener('click',()=>{const r=document.documentElement;const dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+  r.dataset.theme=dark?'light':'dark';try{localStorage.setItem('bayes-theme',r.dataset.theme);}catch(e){}drawAll();});
+try{const t=localStorage.getItem('bayes-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(drawAll);
+setPreset('base');
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sinapsis: suma temporal y coincidencias</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Karla:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EFEBE6; --surface:#FBF9F6; --ink:#2A231D; --muted:#6E6358; --grid:#DDD5CB; --axis:#ABA092;
+  --pre:#2A231D; --syn:#B5562C; --vm:#2B5F8E; --th:#A1323E; --theory:#2A231D; --sim:#B5562C;
+  --focus:#B5562C;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#16130F; --surface:#1E1A15; --ink:#EAE3DA; --muted:#A99D90; --grid:#302A23; --axis:#5C5348;
+    --pre:#EAE3DA; --syn:#F09A6A; --vm:#8EC0EE; --th:#F0848F; --theory:#EAE3DA; --sim:#F09A6A; --focus:#F09A6A;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16130F; --surface:#1E1A15; --ink:#EAE3DA; --muted:#A99D90; --grid:#302A23; --axis:#5C5348;
+  --pre:#EAE3DA; --syn:#F09A6A; --vm:#8EC0EE; --th:#F0848F; --theory:#EAE3DA; --sim:#F09A6A; --focus:#F09A6A;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Karla,system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1280px;margin:0 auto;padding:28px 20px 60px}
+header{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px 40px;align-items:end;margin-bottom:26px}
+h1{font-family:Fraunces,Georgia,serif;font-weight:500;font-size:clamp(30px,4.2vw,50px);line-height:1.04;margin:0;letter-spacing:-.01em}
+h1 small{display:block;font-size:.5em;color:var(--muted);font-weight:400;margin-top:8px;letter-spacing:0}
+header p{margin:0;color:var(--muted);max-width:60ch;font-size:15.5px}
+h2{font-family:Fraunces,Georgia,serif;font-weight:500;font-size:21px;margin:0 0 4px}
+h3{font-size:14px;font-weight:600;margin:0 0 8px}
+.layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;align-items:start}
+aside{background:var(--surface);border-radius:14px;padding:18px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+.panel{background:var(--surface);border-radius:14px;padding:16px 16px 12px}
+.stack{display:grid;gap:14px}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.cap{color:var(--muted);font-size:13.5px;margin:2px 0 10px;max-width:72ch}
+canvas{display:block;width:100%;touch-action:pan-y}
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
+.presets button{font:inherit;font-size:13px;border:1px solid var(--grid);background:transparent;color:var(--ink);border-radius:999px;padding:5px 11px;cursor:pointer}
+.presets button:hover{border-color:var(--axis)}
+.presets button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+fieldset{border:0;padding:0;margin:0 0 16px}
+legend{font-weight:600;font-size:14px;margin-bottom:8px;padding:0}
+.ctl{margin-bottom:10px}
+.ctl label{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:2px}
+.ctl output{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--syn)}
+.seg{display:flex;border:1px solid var(--grid);border-radius:9px;overflow:hidden;margin-bottom:12px}
+.seg button{flex:1;font:inherit;font-size:13px;border:0;background:transparent;color:var(--muted);padding:6px 8px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.btns{display:flex;gap:8px}
+.btn{font:inherit;font-size:14px;font-weight:500;flex:1;padding:9px 10px;border-radius:9px;border:0;cursor:pointer;background:var(--syn);color:var(--surface)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--grid)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted);margin-bottom:6px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.readout{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:8px 0 2px}
+.readout div{font-size:12.5px;color:var(--muted)}
+.readout b{display:block;font-size:19px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
+.theory{margin-top:34px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+.theory .panel{padding:20px 22px}
+.theory p,.theory li{font-family:Fraunces,Georgia,serif;font-size:16.5px;line-height:1.6;max-width:68ch}
+.theory ul{padding-left:20px;margin:8px 0}
+.eq{font-family:Fraunces,Georgia,serif;font-size:16.5px;background:var(--bg);border-radius:10px;padding:12px 14px;margin:10px 0;overflow-x:auto;white-space:nowrap;line-height:1.9}
+.note{font-size:13px;color:var(--muted)}
+.themebtn{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);font:inherit;font-size:13px;border:1px solid var(--grid);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 12px;cursor:pointer}
+@media (max-width:980px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  aside{position:static}
+  header,.theory,.row2{grid-template-columns:minmax(0,1fr)}
+  .readout{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Sinapsis<small>Suma temporal y detección de coincidencias</small></h1>
+  <p>Cada spike presináptico deja una huella que decae con la constante de tiempo sináptica τ<sub>s</sub>. Si los spikes llegan antes de que la huella desaparezca, se suman. Cambia τ<sub>s</sub> y el intervalo entre spikes y observa cuándo la suma basta para que la neurona postsináptica dispare.</p>
+</header>
+
+<div class="layout">
+<aside>
+  <h3>Experimentos</h3>
+  <div class="presets" id="presets">
+    <button data-p="sum" aria-pressed="true">Suma temporal</button>
+    <button data-p="fast">Sinapsis rápida</button>
+    <button data-p="coinc">Detector de coincidencias</button>
+    <button data-p="spread">Entrada dispersa</button>
+    <button data-p="poisson">Entrada Poisson</button>
+  </div>
+
+  <fieldset>
+    <legend>Entrada presináptica</legend>
+    <div class="seg" role="group" aria-label="Tipo de entrada"><button id="m-burst" aria-pressed="true">Ráfaga regular</button><button id="m-poisson" aria-pressed="false">Poisson</button></div>
+    <div class="ctl" id="c-n"><label for="n"><span>Spikes en la ráfaga</span> <output id="o-n"></output></label><input id="n" type="range" min="1" max="10" step="1"></div>
+    <div class="ctl" id="c-isi"><label for="isi"><span>Intervalo Δ</span> <output id="o-isi"></output></label><input id="isi" type="range" min="0.5" max="40" step="0.5"></div>
+    <div class="ctl" id="c-rate"><label for="rate"><span>Tasa Poisson</span> <output id="o-rate"></output></label><input id="rate" type="range" min="5" max="300" step="5"></div>
+  </fieldset>
+  <fieldset>
+    <legend>Sinapsis y neurona</legend>
+    <div class="ctl"><label for="taus"><span>τ<sub>s</sub> (sináptica)</span> <output id="o-taus"></output></label><input id="taus" type="range" min="0.5" max="50" step="0.5"></div>
+    <div class="ctl"><label for="w"><span>Peso w</span> <output id="o-w"></output></label><input id="w" type="range" min="0" max="20" step="0.5"></div>
+    <div class="ctl"><label for="taum"><span>τ<sub>m</sub> (membrana)</span> <output id="o-taum"></output></label><input id="taum" type="range" min="2" max="40" step="1"></div>
+  </fieldset>
+
+  <div class="btns">
+    <button class="btn" id="seed">Nueva semilla</button>
+    <button class="btn ghost" id="reset">Valores originales</button>
+  </div>
+</aside>
+
+<main class="stack">
+  <section class="panel">
+    <h2>Entrada y respuesta sináptica</h2>
+    <p class="cap" id="cap"></p>
+    <div class="legend"><span><i style="background:var(--pre)"></i>spikes presinápticos</span><span><i style="background:var(--syn)"></i>variable sináptica s(t)</span><span><i style="background:var(--axis)"></i>respuesta a un solo spike</span></div>
+    <canvas id="cpre" height="40" aria-label="Spikes presinápticos"></canvas>
+    <canvas id="cs" height="200" aria-label="Variable sináptica"></canvas>
+  </section>
+  <section class="panel">
+    <h2>Neurona postsináptica</h2>
+    <p class="cap">Una neurona LIF que recibe la corriente w·s(t). Solo dispara si la suma de las respuestas sinápticas lleva su voltaje al umbral.</p>
+    <div class="legend"><span><i style="background:var(--vm)"></i>V(t)</span><span><i style="background:var(--th)"></i>umbral (−50 mV)</span></div>
+    <canvas id="cv" height="200" aria-label="Voltaje postsináptico"></canvas>
+    <div class="readout">
+      <div>Pico de s simulado<b id="r-peak">–</b></div>
+      <div>Pico teórico (ráfaga)<b id="r-peakT">–</b></div>
+      <div>Pico de V<b id="r-vpk">–</b></div>
+      <div>Spikes postsinápticos<b id="r-post">–</b></div>
+    </div>
+  </section>
+  <div class="row2">
+    <section class="panel">
+      <h2>Pico frente al intervalo</h2>
+      <p class="cap">Pico de s para la ráfaga actual en función de Δ: la curva es la fórmula teórica y el punto, la simulación. Cuando Δ ≫ τ<sub>s</sub>, el pico baja a 1 (no hay suma).</p>
+      <div class="legend"><span><i style="background:var(--theory)"></i>teoría</span><span><i style="background:var(--sim)"></i>valor actual</span></div>
+      <canvas id="cpk" height="230" aria-label="Pico frente al intervalo"></canvas>
+    </section>
+    <section class="panel">
+      <h2>Ventana de integración</h2>
+      <p class="cap">Respuesta normalizada a un solo spike, h(t) = e<sup>−t/τ<sub>s</sub></sup>, para τ<sub>s</sub> rápida (2 ms), actual y lenta (20 ms). La línea punteada marca t = τ<sub>s</sub>, donde h cae a 1/e ≈ 0,37.</p>
+      <canvas id="ck" height="230" aria-label="Respuesta al impulso"></canvas>
+    </section>
+  </div>
+</main>
+</div>
+
+<section class="theory">
+  <div class="panel">
+    <h2>Las ecuaciones</h2>
+    <p>Cada spike presináptico en t<sub>j</sub> suma 1 a la variable sináptica s, que luego decae exponencialmente:</p>
+    <div class="eq">τ<sub>s</sub> ds/dt = −s + τ<sub>s</sub> Σ<sub>j</sub> δ(t − t<sub>j</sub>) &nbsp;⟹&nbsp; s(t) = Σ<sub>j</sub> e<sup>−(t − t<sub>j</sub>)/τ<sub>s</sub></sup></div>
+    <p>Es un filtro lineal: la respuesta a un tren es la suma de respuestas a cada spike. Para una ráfaga de N spikes separados Δ, el pico (justo tras el último) es una serie geométrica:</p>
+    <div class="eq">s<sub>pico</sub> = Σ<sub>k=0</sub><sup>N−1</sup> e<sup>−kΔ/τ<sub>s</sub></sup> = (1 − e<sup>−NΔ/τ<sub>s</sub></sup>) / (1 − e<sup>−Δ/τ<sub>s</sub></sup>)</div>
+    <p>La neurona postsináptica es un LIF que recibe esa corriente:</p>
+    <div class="eq">τ<sub>m</sub> dV/dt = −(V − V<sub>rest</sub>) + w·s(t), &nbsp; spike si V ≥ −50 mV</div>
+    <p class="note">V<sub>rest</sub> = V<sub>reset</sub> = −65 mV, refractario 2 ms. Δt = 0,05 ms; s se actualiza de forma exacta (s ← s·e<sup>−Δt/τ<sub>s</sub></sup> + spikes).</p>
+  </div>
+  <div class="panel">
+    <h2>Qué observar</h2>
+    <ul>
+      <li><b>Suma temporal.</b> Con τ<sub>s</sub> lenta, spikes separados unos milisegundos se acumulan: varios spikes débiles juntos hacen disparar a la neurona aunque cada uno por separado no pueda.</li>
+      <li><b>Detección de coincidencias.</b> Con τ<sub>s</sub> rápida solo spikes casi simultáneos se suman: la neurona responde a la sincronía, no a la tasa. Así trabajan, por ejemplo, neuronas auditivas que comparan tiempos de llegada entre oídos.</li>
+      <li><b>Tasa frente a tiempo.</b> Con entrada Poisson, s(t) fluctúa alrededor de r·τ<sub>s</sub>: una sinapsis lenta promedia (lee la tasa), una rápida sigue cada spike.</li>
+      <li><b>Dos filtros en serie.</b> La membrana (τ<sub>m</sub>) vuelve a filtrar la corriente sináptica: el pico de V llega después del pico de s y es más suave.</li>
+      <li><b>Lo que falta.</b> Saturación de receptores, depresión y facilitación sináptica, y la dependencia del voltaje de la corriente (E<sub>syn</sub>). Este modelo es lineal.</li>
+    </ul>
+  </div>
+</section>
+
+<button class="themebtn" id="theme" aria-label="Cambiar tema">Tema</button>
+
+<script>
+(function(){
+"use strict";
+const DT=0.05, TMAX=150, T0=10, VREST=-65, VTH=-50, TREF=2;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const DEF={mode:'burst',n:5,isi:4,rate:80,taus:10,w:12,taum:10};
+const PRESETS={
+  sum:{},
+  fast:{taus:2},
+  coinc:{taus:1.5,isi:0.5,w:18,taum:3},
+  spread:{taus:1.5,isi:6,w:18,taum:3},
+  poisson:{mode:'poisson',rate:80,taus:10}
+};
+const CAPS={
+  sum:'Cinco spikes cada 4 ms con τs = 10 ms: cada respuesta llega antes de que la anterior se apague, el pico llega a 2,6 veces el de un spike y la neurona dispara. Pon 1 spike en la ráfaga: solo no basta.',
+  fast:'La misma ráfaga con τs = 2 ms: entre spikes la respuesta cae al 14 %, el pico apenas pasa de 1,16 y la neurona no llega al umbral.',
+  coinc:'Sinapsis y membrana rápidas (τs = 1,5 ms, τm = 3 ms) con spikes casi simultáneos (Δ = 0,5 ms): las respuestas se suman y la neurona dispara.',
+  spread:'Los mismos 5 spikes, el mismo peso y las mismas constantes, pero separados 6 ms: las respuestas no se solapan y la neurona no dispara. Solo cuenta la sincronía.',
+  poisson:'Entrada Poisson a 80 Hz: s(t) fluctúa alrededor de r·τs = 0,8. Cambia τs para ver cómo una sinapsis lenta promedia y una rápida sigue cada spike.'
+};
+let P={...DEF}, seed=6, sim=null;
+const $=id=>document.getElementById(id);
+const fmt=(v,d=1)=>(Math.round(v*10**d)/10**d).toLocaleString('es',{minimumFractionDigits:d,maximumFractionDigits:d});
+const units={n:v=>fmt(v,0),isi:v=>fmt(v)+' ms',rate:v=>fmt(v,0)+' Hz',taus:v=>fmt(v)+' ms',w:v=>fmt(v)+' mV',taum:v=>fmt(v,0)+' ms'};
+const KEYS=Object.keys(units);
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function syncUI(){
+  KEYS.forEach(k=>{$(k).value=P[k];$('o-'+k).textContent=units[k](P[k]);});
+  $('m-burst').setAttribute('aria-pressed',P.mode==='burst');$('m-poisson').setAttribute('aria-pressed',P.mode==='poisson');
+  $('c-n').style.display=$('c-isi').style.display=P.mode==='burst'?'':'none';$('c-rate').style.display=P.mode==='poisson'?'':'none';
+}
+
+// ---------- Modelo ----------
+function inputSpikes(p){
+  if(p.mode==='burst'){const s=[];for(let k=0;k<p.n;k++)s.push(T0+k*p.isi);return s.filter(t=>t<TMAX);}
+  const rng=mulberry32(seed), s=[];let t=0;while(true){t+=-Math.log(1-rng())/p.rate*1000;if(t>TMAX)break;s.push(t);}return s;
+}
+function theoryPeak(p){const q=Math.exp(-p.isi/p.taus);return q===1?p.n:(1-Math.pow(q,p.n))/(1-q);}
+function simulate(p){
+  const n=Math.round(TMAX/DT), t=new Float32Array(n+1), s=new Float32Array(n+1), V=new Float32Array(n+1), spikes=inputSpikes(p);
+  const counts=new Uint16Array(n+1);spikes.forEach(x=>{counts[Math.min(n,Math.round(x/DT))]++;});
+  const decay=Math.exp(-DT/p.taus), refSteps=Math.round(TREF/DT), post=[];let v=VREST,until=0,sv=counts[0];
+  for(let k=0;k<=n;k++){
+    t[k]=k*DT;s[k]=sv;V[k]=v;
+    if(k===n)break;
+    if(k<until){v=VREST;}
+    else{v+=DT*(-(v-VREST)+p.w*sv)/p.taum;if(v>=VTH){post.push((k+1)*DT);v=VREST;until=k+1+refSteps;}}
+    sv=sv*decay+counts[k+1];
+  }
+  return {t,s,V,spikes,post};
+}
+
+// ---------- Gráficas ----------
+function prep(cv){
+  const dpr=window.devicePixelRatio||1, w=cv.clientWidth, h=+cv.getAttribute('height');
+  if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px';}
+  const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);return {c,w,h};
+}
+const PAD={l:46,r:12,t:8,b:22};
+function ticks(a,b,n){const span=b-a, step0=span/n, mag=10**Math.floor(Math.log10(step0)), s=[1,2,5,10].map(f=>f*mag).find(f=>f>=step0);const out=[];for(let v=Math.ceil(a/s)*s;v<=b+1e-9;v+=s)out.push(+v.toFixed(6));return out;}
+function frame(g,xr,yr,o={}){
+  const {c,w,h}=g, pad={...PAD,...(o.pad||{})};
+  const X=x=>pad.l+(x-xr[0])/(xr[1]-xr[0])*(w-pad.l-pad.r), Y=y=>h-pad.b-(y-yr[0])/(yr[1]-yr[0])*(h-pad.t-pad.b);
+  c.font='11px Karla, system-ui, sans-serif';c.textBaseline='middle';c.strokeStyle=css('--grid');c.fillStyle=css('--muted');c.lineWidth=1;
+  (o.yt||[]).forEach(v=>{const y=Math.round(Y(v))+.5;c.beginPath();c.moveTo(pad.l,y);c.lineTo(w-pad.r,y);c.stroke();c.textAlign='right';c.fillText(o.yf?o.yf(v):fmt(v,v%1?1:0),pad.l-6,y);});
+  if(o.xt!==false){const xt=o.xt||ticks(xr[0],xr[1],w>500?10:5);c.textAlign='center';c.textBaseline='top';xt.forEach(v=>c.fillText(fmt(v,v%1?1:0),X(v),h-pad.b+5));c.textBaseline='middle';}
+  if(o.xl){c.textAlign='right';c.textBaseline='bottom';c.fillText(o.xl,w-pad.r,h-pad.b-3);c.textBaseline='middle';}
+  if(o.yl){c.save();c.translate(10,(h-pad.b+pad.t)/2);c.rotate(-Math.PI/2);c.textAlign='center';c.fillText(o.yl,0,0);c.restore();}
+  return {X,Y,pad};
+}
+function line(g,f,xs,ys,n,color,lw=1.8,dash){const {c}=g;c.strokeStyle=color;c.lineWidth=lw;c.setLineDash(dash||[]);c.lineJoin='round';c.beginPath();for(let i=0;i<n;i++){const x=f.X(xs[i]),y=f.Y(ys[i]);i?c.lineTo(x,y):c.moveTo(x,y);}c.stroke();c.setLineDash([]);}
+function clip(g,f){const {c,w,h}=g;c.save();c.beginPath();c.rect(f.pad.l,f.pad.t,w-f.pad.l-f.pad.r,h-f.pad.t-f.pad.b);c.clip();}
+
+function drawPre(){
+  const g=prep($('cpre')),c=g.c,f=frame(g,[0,TMAX],[0,1],{yt:[],xt:false,pad:{t:4,b:4}});
+  c.strokeStyle=css('--pre');c.lineWidth=1.6;sim.spikes.forEach(t=>{const x=f.X(t);c.beginPath();c.moveTo(x,f.Y(0.05));c.lineTo(x,f.Y(0.95));c.stroke();});
+  c.fillStyle=css('--muted');c.textAlign='right';c.fillText('pre',f.pad.l-6,g.h/2);
+}
+function drawS(){
+  const g=prep($('cs')),c=g.c;let hi=1.2;for(let i=0;i<sim.s.length;i++)hi=Math.max(hi,sim.s[i]*1.12);
+  const f=frame(g,[0,TMAX],[0,hi],{yt:ticks(0,hi,4),yl:'s',xl:'ms'});
+  clip(g,f);
+  if(sim.spikes.length){const t0=sim.spikes[0],xs=[],ys=[];for(let t=t0;t<=TMAX;t+=0.25){xs.push(t);ys.push(Math.exp(-(t-t0)/P.taus));}line(g,f,xs,ys,xs.length,css('--axis'),1.4,[4,4]);}
+  c.fillStyle=css('--syn');c.globalAlpha=.12;c.beginPath();c.moveTo(f.X(0),f.Y(0));for(let i=0;i<sim.t.length;i+=2)c.lineTo(f.X(sim.t[i]),f.Y(sim.s[i]));c.lineTo(f.X(TMAX),f.Y(0));c.fill();c.globalAlpha=1;
+  line(g,f,sim.t,sim.s,sim.t.length,css('--syn'),2);
+  if(P.mode==='poisson'){c.strokeStyle=css('--syn');c.setLineDash([2,4]);c.beginPath();const y=f.Y(P.rate*P.taus/1000);c.moveTo(f.pad.l,y);c.lineTo(g.w-f.pad.r,y);c.stroke();c.setLineDash([]);c.fillStyle=css('--syn');c.textAlign='right';c.fillText('r·τs',g.w-f.pad.r-4,y-8);}
+  c.restore();
+}
+function drawV(){
+  const g=prep($('cv')),c=g.c;let lo=-67,hi=-40;for(let i=0;i<sim.V.length;i++){lo=Math.min(lo,sim.V[i]-1);}
+  const f=frame(g,[0,TMAX],[lo,hi],{yt:ticks(lo,hi,4),yl:'mV',xl:'ms'});
+  clip(g,f);
+  c.strokeStyle=css('--th');c.lineWidth=1.5;c.beginPath();c.moveTo(f.pad.l,f.Y(VTH)+.5);c.lineTo(g.w-f.pad.r,f.Y(VTH)+.5);c.stroke();
+  line(g,f,sim.t,sim.V,sim.t.length,css('--vm'),1.9);
+  c.strokeStyle=css('--vm');c.lineWidth=2;sim.post.forEach(t=>{const x=f.X(t);c.beginPath();c.moveTo(x,f.Y(VTH));c.lineTo(x,f.Y(hi-1));c.stroke();});
+  c.restore();
+}
+function drawPeak(){
+  const g=prep($('cpk')),c=g.c, xs=[],ys=[];
+  for(let d=0.25;d<=40;d+=0.25){xs.push(d);ys.push(theoryPeak({...P,isi:d}));}
+  const hi=Math.max(...ys,1)*1.1;
+  const f=frame(g,[0,40],[0,hi],{yt:ticks(0,hi,4),yl:'pico de s',xl:'Δ (ms)'});
+  line(g,f,xs,ys,xs.length,css('--theory'),1.7);
+  c.strokeStyle=css('--axis');c.setLineDash([3,4]);c.beginPath();c.moveTo(f.pad.l,f.Y(1));c.lineTo(g.w-f.pad.r,f.Y(1));c.stroke();c.moveTo(f.X(P.taus),f.pad.t);c.lineTo(f.X(P.taus),g.h-f.pad.b);c.stroke();c.setLineDash([]);
+  c.fillStyle=css('--muted');c.textAlign='left';c.fillText('Δ = τs',Math.min(f.X(P.taus)+4,g.w-60),f.pad.t+8);
+  if(P.mode==='burst'){c.fillStyle=css('--sim');c.strokeStyle=css('--surface');c.lineWidth=2;c.beginPath();c.arc(f.X(P.isi),f.Y(peakS()),6,0,7);c.fill();c.stroke();}
+  else{c.fillStyle=css('--muted');c.textAlign='center';c.fillText('(curva para la ráfaga; ahora la entrada es Poisson)',g.w/2,f.pad.t+24);}
+}
+function drawKernel(){
+  const g=prep($('ck')),c=g.c,f=frame(g,[0,60],[0,1.05],{yt:[0,0.37,1],yf:v=>fmt(v,2),yl:'h(t)',xl:'t (ms)'});
+  [[2,css('--axis'),[4,3]],[20,css('--axis'),[1,3]],[P.taus,css('--syn'),[]]].forEach(([tau,col,dash])=>{const xs=[],ys=[];for(let t=0;t<=60;t+=0.25){xs.push(t);ys.push(Math.exp(-t/tau));}line(g,f,xs,ys,xs.length,col,tau===P.taus?2.2:1.4,dash);});
+  c.strokeStyle=css('--syn');c.setLineDash([2,3]);c.beginPath();c.moveTo(f.X(P.taus),f.Y(0));c.lineTo(f.X(P.taus),f.Y(Math.exp(-1)));c.stroke();c.setLineDash([]);
+  c.fillStyle=css('--muted');c.textAlign='left';c.fillText('2 ms',f.X(2.5),f.Y(0.2));c.fillText('20 ms',f.X(30),f.Y(Math.exp(-30/20))-8);
+  c.fillStyle=css('--syn');c.fillText('τs = '+fmt(P.taus)+' ms',Math.min(f.X(P.taus)+6,g.w-90),f.Y(0.55));
+}
+function peakS(){let m=0;for(let i=0;i<sim.s.length;i++)m=Math.max(m,sim.s[i]);return m;}
+function updateReadout(){
+  $('r-peak').textContent=fmt(peakS(),2);
+  $('r-peakT').textContent=P.mode==='burst'?fmt(theoryPeak(P),2):'–';
+  let vm=-Infinity;for(let i=0;i<sim.V.length;i++)vm=Math.max(vm,sim.V[i]);
+  $('r-vpk').textContent=sim.post.length?'umbral':fmt(vm)+' mV';
+  $('r-post').textContent=sim.post.length;
+}
+function drawAll(){if(!sim)return;drawPre();drawS();drawV();drawPeak();drawKernel();updateReadout();}
+function run(){sim=simulate(P);drawAll();}
+
+// ---------- Eventos ----------
+function setPreset(name){
+  P={...DEF,...PRESETS[name]};
+  document.querySelectorAll('#presets button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.p===name));
+  $('cap').textContent=CAPS[name];syncUI();run();
+}
+function clearPreset(){document.querySelectorAll('#presets button').forEach(b=>b.setAttribute('aria-pressed','false'));$('cap').textContent='Parámetros modificados. La línea discontinua gris es la respuesta que dejaría solo el primer spike.';}
+document.querySelectorAll('#presets button').forEach(b=>b.addEventListener('click',()=>setPreset(b.dataset.p)));
+KEYS.forEach(k=>$(k).addEventListener('input',e=>{P[k]=+e.target.value;$('o-'+k).textContent=units[k](P[k]);clearPreset();run();}));
+$('m-burst').addEventListener('click',()=>{P.mode='burst';syncUI();clearPreset();run();});
+$('m-poisson').addEventListener('click',()=>{P.mode='poisson';syncUI();clearPreset();run();});
+$('seed').addEventListener('click',()=>{seed=Math.floor(Math.random()*1e6);run();});
+$('reset').addEventListener('click',()=>setPreset('sum'));
+let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(drawAll,80);});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',drawAll);
+$('theme').addEventListener('click',()=>{const r=document.documentElement;const dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+  r.dataset.theme=dark?'light':'dark';try{localStorage.setItem('syn-theme',r.dataset.theme);}catch(e){}drawAll();});
+try{const t=localStorage.getItem('syn-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(drawAll);
+setPreset('sum');
+})();
+</script>
+</body>
+</html>

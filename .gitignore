@@ -22,6 +22,7 @@ build/
 dist/
 site/
 *.egg-info/
+outputs/
 
 # Local environment and secrets
 .env
@@ -38,3 +39,14 @@ Desktop.ini
 # Logs and temporary files
 *.log
 *.tmp
+
+# Local experiments and data (not versioned)
+data/
+*.snirf
+*.nwb
+
+# GitHub Pages build
+_site/
+
+# Claude Code local settings
+.claude/settings.local.json

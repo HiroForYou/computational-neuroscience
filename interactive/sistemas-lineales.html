@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sistemas lineales 2D: puntos fijos y estabilidad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E9ECEF; --surface:#F8F9FB; --ink:#1E2430; --muted:#5D6675; --grid:#D4D9E0; --axis:#9AA3B0;
+  --traj:#2F55A4; --x:#2F55A4; --y:#C2563A; --nx:#2E8A6E; --ny:#B07A12; --eig:#7B4BB0; --stable:#2E8A6E; --unstable:#C2563A;
+  --focus:#2F55A4;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11141A; --surface:#181C24; --ink:#DEE3EC; --muted:#95A0B1; --grid:#262C37; --axis:#4D5665;
+    --traj:#8FB0FF; --x:#8FB0FF; --y:#F2957A; --nx:#5FD0AC; --ny:#E9BC55; --eig:#C29CF0; --stable:#5FD0AC; --unstable:#F2957A; --focus:#8FB0FF;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11141A; --surface:#181C24; --ink:#DEE3EC; --muted:#95A0B1; --grid:#262C37; --axis:#4D5665;
+  --traj:#8FB0FF; --x:#8FB0FF; --y:#F2957A; --nx:#5FD0AC; --ny:#E9BC55; --eig:#C29CF0; --stable:#5FD0AC; --unstable:#F2957A; --focus:#8FB0FF;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1280px;margin:0 auto;padding:28px 20px 60px}
+header{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px 40px;align-items:end;margin-bottom:26px}
+h1{font-family:"Crimson Pro",Georgia,serif;font-weight:500;font-size:clamp(30px,4.2vw,50px);line-height:1.04;margin:0;letter-spacing:-.01em}
+h1 small{display:block;font-size:.5em;color:var(--muted);font-weight:400;margin-top:8px;letter-spacing:0}
+header p{margin:0;color:var(--muted);max-width:60ch;font-size:15.5px}
+h2{font-family:"Crimson Pro",Georgia,serif;font-weight:500;font-size:23px;margin:0 0 4px}
+h3{font-size:14px;font-weight:600;margin:0 0 8px}
+.layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;align-items:start}
+aside{background:var(--surface);border-radius:14px;padding:18px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+.panel{background:var(--surface);border-radius:14px;padding:16px 16px 12px}
+.stack{display:grid;gap:14px}
+.row2{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px;align-items:start}
+.cap{color:var(--muted);font-size:13.5px;margin:2px 0 10px;max-width:72ch}
+canvas{display:block;width:100%;touch-action:none}
+#cp,#ctd{cursor:crosshair}
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
+.presets button{font:inherit;font-size:13px;border:1px solid var(--grid);background:transparent;color:var(--ink);border-radius:999px;padding:5px 11px;cursor:pointer}
+.presets button:hover{border-color:var(--axis)}
+.presets button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+fieldset{border:0;padding:0;margin:0 0 16px}
+legend{font-weight:600;font-size:14px;margin-bottom:8px;padding:0}
+.matrix{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;padding:10px 12px;border-left:2px solid var(--ink);border-right:2px solid var(--ink);border-radius:6px}
+.ctl label{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:2px}
+.ctl output{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--traj)}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font:inherit;font-size:14px;font-weight:500;flex:1;padding:9px 10px;border-radius:9px;border:0;cursor:pointer;background:var(--traj);color:var(--surface)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--grid)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.opts{display:flex;flex-direction:column;gap:6px;font-size:13.5px;color:var(--muted);margin-bottom:16px}
+.opts input{accent-color:var(--traj)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted);margin-bottom:6px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.cls{display:flex;align-items:center;gap:10px;margin:4px 0 12px}
+.cls .dot{width:12px;height:12px;border-radius:50%;flex:none;background:var(--axis)}
+.cls b{font-family:"Crimson Pro",Georgia,serif;font-size:24px;font-weight:500}
+.readout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px}
+.readout div{font-size:12.5px;color:var(--muted)}
+.readout b{display:block;font-size:17px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
+.desc{font-size:14px;color:var(--ink);margin:12px 0 0}
+.theory{margin-top:34px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+.theory .panel{padding:20px 22px}
+.theory p,.theory li{font-family:"Crimson Pro",Georgia,serif;font-size:18px;line-height:1.55;max-width:68ch}
+.theory ul{padding-left:20px;margin:8px 0}
+.eq{font-family:"Crimson Pro",Georgia,serif;font-size:18px;background:var(--bg);border-radius:10px;padding:12px 14px;margin:10px 0;overflow-x:auto;white-space:nowrap;line-height:1.9}
+table{border-collapse:collapse;font-size:14px;margin:8px 0}
+td,th{padding:4px 10px;border-bottom:1px solid var(--grid);text-align:left}
+.note{font-size:13px;color:var(--muted)}
+.themebtn{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);font:inherit;font-size:13px;border:1px solid var(--grid);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 12px;cursor:pointer}
+@media (max-width:980px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  aside{position:static}
+  header,.theory,.row2{grid-template-columns:minmax(0,1fr)}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Sistemas lineales 2D<small>Puntos fijos, autovalores y retratos de fase</small></h1>
+  <p>Todo análisis de estabilidad (de una neurona de Hodgkin–Huxley o de una red de Wilson–Cowan) termina en una matriz de 2×2 como esta. Cambia sus coeficientes, haz clic en el plano de fase para lanzar trayectorias y mira cómo los autovalores deciden si el origen atrae, repele o hace girar.</p>
+</header>
+
+<div class="layout">
+<aside>
+  <h3>Tipos de punto fijo</h3>
+  <div class="presets" id="presets">
+    <button data-p="focus" aria-pressed="true">Foco estable</button>
+    <button data-p="node">Nodo estable</button>
+    <button data-p="saddle">Silla</button>
+    <button data-p="center">Centro</button>
+    <button data-p="ufocus">Foco inestable</button>
+    <button data-p="unode">Nodo inestable</button>
+    <button data-p="degenerate">det A = 0</button>
+  </div>
+
+  <fieldset>
+    <legend>Matriz A</legend>
+    <div class="matrix">
+      <div class="ctl"><label for="a">a <output id="o-a"></output></label><input id="a" type="range" min="-3" max="3" step="0.05"></div>
+      <div class="ctl"><label for="b">b <output id="o-b"></output></label><input id="b" type="range" min="-3" max="3" step="0.05"></div>
+      <div class="ctl"><label for="c">c <output id="o-c"></output></label><input id="c" type="range" min="-3" max="3" step="0.05"></div>
+      <div class="ctl"><label for="d">d <output id="o-d"></output></label><input id="d" type="range" min="-3" max="3" step="0.05"></div>
+    </div>
+  </fieldset>
+
+  <div class="opts">
+    <label><input type="checkbox" id="showField" checked> Campo vectorial</label>
+    <label><input type="checkbox" id="showNull" checked> Nullclines</label>
+    <label><input type="checkbox" id="showEig" checked> Autovectores (si son reales)</label>
+  </div>
+
+  <div class="btns">
+    <button class="btn" id="play">Animar</button>
+    <button class="btn ghost" id="clear">Borrar trayectorias</button>
+  </div>
+</aside>
+
+<main class="stack">
+  <div class="row2">
+    <section class="panel">
+      <h2>Plano de fase</h2>
+      <p class="cap">ẋ = a x + b y, &nbsp; ẏ = c x + d y. Haz clic (o arrastra) para lanzar una trayectoria desde ese punto; el círculo marca el inicio.</p>
+      <div class="legend"><span><i style="background:var(--traj)"></i>trayectorias</span><span><i style="background:var(--nx)"></i>ẋ = 0</span><span><i style="background:var(--ny)"></i>ẏ = 0</span><span><i style="background:var(--eig)"></i>autovectores</span></div>
+      <canvas id="cp" height="460" aria-label="Plano de fase"></canvas>
+    </section>
+    <div class="stack">
+      <section class="panel">
+        <h2>Clasificación</h2>
+        <div class="cls"><span class="dot" id="cls-dot"></span><b id="cls">–</b></div>
+        <div class="readout">
+          <div>λ₁<b id="r-l1">–</b></div>
+          <div>λ₂<b id="r-l2">–</b></div>
+          <div>Traza τ = a + d<b id="r-tr">–</b></div>
+          <div>Determinante Δ = ad − bc<b id="r-det">–</b></div>
+        </div>
+        <p class="desc" id="desc"></p>
+      </section>
+      <section class="panel">
+        <h2>Plano traza–determinante</h2>
+        <p class="cap">Cada matriz es un punto. La parábola Δ = τ²/4 separa focos (autovalores complejos) de nodos. Haz clic para elegir otro punto.</p>
+        <canvas id="ctd" height="260" aria-label="Plano traza determinante"></canvas>
+      </section>
+    </div>
+  </div>
+  <section class="panel">
+    <h2>Series temporales</h2>
+    <p class="cap">x(t) e y(t) de la última trayectoria. Con autovalores complejos oscilan con frecuencia |Im λ|/2π; la parte real decide si la amplitud crece o se apaga.</p>
+    <div class="legend"><span><i style="background:var(--x)"></i>x(t)</span><span><i style="background:var(--y)"></i>y(t)</span></div>
+    <canvas id="ct" height="180" aria-label="Series temporales"></canvas>
+  </section>
+</main>
+</div>
+
+<section class="theory">
+  <div class="panel">
+    <h2>Las ecuaciones</h2>
+    <div class="eq">d/dt (x, y)ᵀ = A (x, y)ᵀ, &nbsp;&nbsp; A = [[a, b], [c, d]]</div>
+    <p>El origen siempre es un punto fijo. Los autovalores son las raíces de λ² − τλ + Δ = 0:</p>
+    <div class="eq">λ<sub>1,2</sub> = τ/2 ± √(τ²/4 − Δ), &nbsp;&nbsp; τ = a + d, &nbsp; Δ = ad − bc</div>
+    <p>Si los autovectores v<sub>i</sub> son independientes, la solución es x(t) = c₁ e<sup>λ₁t</sup> v₁ + c₂ e<sup>λ₂t</sup> v₂. Cada término crece si Re λ &gt; 0 y se apaga si Re λ &lt; 0.</p>
+    <table>
+      <tr><th>Condición</th><th>Tipo</th></tr>
+      <tr><td>Δ &lt; 0</td><td>silla (siempre inestable)</td></tr>
+      <tr><td>Δ &gt; 0, τ² &lt; 4Δ</td><td>foco (espiral): estable si τ &lt; 0</td></tr>
+      <tr><td>Δ &gt; 0, τ² &gt; 4Δ</td><td>nodo: estable si τ &lt; 0</td></tr>
+      <tr><td>Δ &gt; 0, τ = 0</td><td>centro (órbitas cerradas)</td></tr>
+      <tr><td>Δ = 0</td><td>línea de puntos fijos</td></tr>
+    </table>
+    <p class="note">Las trayectorias se integran con Runge–Kutta de cuarto orden (Δt = 0,01).</p>
+  </div>
+  <div class="panel">
+    <h2>Por qué importa en neurociencia</h2>
+    <ul>
+      <li><b>Linealización.</b> Un modelo no lineal ẋ = f(x) se comporta cerca de un punto fijo x* como ẋ ≈ J (x − x*), con J el jacobiano. La matriz A de este módulo es ese jacobiano.</li>
+      <li><b>Reposo estable.</b> Una neurona en reposo es un punto fijo estable: pequeñas perturbaciones se apagan. Si es un foco, la vuelta al reposo es oscilatoria (como las oscilaciones subumbral).</li>
+      <li><b>Bifurcación de Hopf.</b> Cuando un foco estable cruza τ = 0 se vuelve inestable y en el sistema no lineal nace una oscilación: así empieza a disparar Hodgkin–Huxley con corriente sostenida y así oscila Wilson–Cowan. Muévete en el plano traza–determinante a través del eje vertical para verlo.</li>
+      <li><b>Sillas y umbrales.</b> El autovector estable de una silla separa trayectorias que van a destinos distintos: es la idea geométrica de un umbral de disparo o de una frontera entre memorias.</li>
+    </ul>
+  </div>
+</section>
+
+<button class="themebtn" id="theme" aria-label="Cambiar tema">Tema</button>
+
+<script>
+(function(){
+"use strict";
+const R=3, DT=0.01, TMAX=12;
+const PRESETS={
+  focus:[-1,-2,2,-1], node:[-2,0.5,0.5,-1], saddle:[0.2,1,1,-0.6], center:[0,-1.5,1.5,0],
+  ufocus:[0.3,-2,2,0.3], unode:[1.5,0.3,0.2,0.8], degenerate:[1,-2,-0.5,1]
+};
+const SEEDS=[[2.5,0],[0,2.5],[-2.5,0],[0,-2.5],[1.8,1.8],[-1.8,-1.8],[1.8,-1.8],[-1.8,1.8]];
+let A=[...PRESETS.focus], trajs=[], reveal=Infinity, playing=false, raf=0;
+const $=id=>document.getElementById(id);
+const fmt=(v,d=2)=>(Math.round(v*10**d)/10**d).toLocaleString('es',{minimumFractionDigits:d,maximumFractionDigits:d});
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+
+// ---------- Álgebra ----------
+function eig(){
+  const [a,b,c,d]=A, tr=a+d, det=a*d-b*c, disc=tr*tr/4-det;
+  if(disc>=0){const s=Math.sqrt(disc);return {tr,det,disc,re:[tr/2+s,tr/2-s],im:[0,0]};}
+  const s=Math.sqrt(-disc);return {tr,det,disc,re:[tr/2,tr/2],im:[s,-s]};
+}
+function eigvec(l){const [a,b,c,d]=A;let v=Math.abs(b)>1e-9?[b,l-a]:(Math.abs(c)>1e-9?[l-d,c]:(Math.abs(l-a)<1e-9?[1,0]:[0,1]));const n=Math.hypot(v[0],v[1]);return [v[0]/n,v[1]/n];}
+function classify(e){
+  const eps=1e-6;
+  if(Math.abs(e.det)<eps)return {name:'Línea de puntos fijos',kind:'neutral',text:'Δ = 0: un autovalor es cero, así que hay toda una recta de equilibrios (la dirección de ese autovector). Las trayectorias se mueven en paralelo al otro autovector.'};
+  if(e.det<0)return {name:'Silla',kind:'unstable',text:'Autovalores reales de signo opuesto: se atrae a lo largo de un autovector y se repele a lo largo del otro. Casi todas las trayectorias escapan.'};
+  if(Math.abs(e.tr)<eps)return {name:'Centro',kind:'neutral',text:'Autovalores imaginarios puros: órbitas cerradas que ni crecen ni decaen. Es un caso frágil: cualquier cambio de la traza lo convierte en foco.'};
+  const st=e.tr<0, complex=e.disc<0;
+  if(complex)return {name:st?'Foco estable':'Foco inestable',kind:st?'stable':'unstable',text:(st?'Autovalores complejos con parte real negativa: las trayectorias giran en espiral hacia el origen.':'Autovalores complejos con parte real positiva: las trayectorias giran en espiral alejándose del origen.')+' Período de giro 2π/|Im λ| = '+fmt(2*Math.PI/Math.abs(e.im[0]),2)+'.'};
+  return {name:st?'Nodo estable':'Nodo inestable',kind:st?'stable':'unstable',text:st?'Autovalores reales negativos: las trayectorias llegan al origen sin girar, tangentes al autovector lento (el de |λ| menor).':'Autovalores reales positivos: las trayectorias salen del origen sin girar.'};
+}
+function f(x,y){return [A[0]*x+A[1]*y, A[2]*x+A[3]*y];}
+function integrate(x0,y0){
+  const ts=[0],xs=[x0],ys=[y0];let x=x0,y=y0,t=0;
+  while(t<TMAX){
+    const k1=f(x,y),k2=f(x+DT/2*k1[0],y+DT/2*k1[1]),k3=f(x+DT/2*k2[0],y+DT/2*k2[1]),k4=f(x+DT*k3[0],y+DT*k3[1]);
+    x+=DT/6*(k1[0]+2*k2[0]+2*k3[0]+k4[0]);y+=DT/6*(k1[1]+2*k2[1]+2*k3[1]+k4[1]);t+=DT;
+    ts.push(t);xs.push(x);ys.push(y);
+    if(Math.abs(x)>50*R||Math.abs(y)>50*R)break;
+  }
+  return {x0,y0,ts,xs,ys};
+}
+function recompute(){trajs=trajs.map(tr=>integrate(tr.x0,tr.y0));}
+
+// ---------- Gráficas ----------
+function prep(cv,square){
+  const dpr=window.devicePixelRatio||1, w=cv.clientWidth, h=square?Math.min(w,+cv.getAttribute('height')):+cv.getAttribute('height');
+  if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px';}
+  const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);return {c,w,h};
+}
+function ticks(a,b,n){const span=b-a, step0=span/n, mag=10**Math.floor(Math.log10(step0)), s=[1,2,5,10].map(f=>f*mag).find(f=>f>=step0);const out=[];for(let v=Math.ceil(a/s)*s;v<=b+1e-9;v+=s)out.push(+v.toFixed(6));return out;}
+function axes(g,xr,yr,pad,o={}){
+  const {c,w,h}=g;
+  const X=x=>pad.l+(x-xr[0])/(xr[1]-xr[0])*(w-pad.l-pad.r), Y=y=>h-pad.b-(y-yr[0])/(yr[1]-yr[0])*(h-pad.t-pad.b);
+  c.font='11px "DM Sans", system-ui, sans-serif';c.lineWidth=1;c.strokeStyle=css('--grid');c.fillStyle=css('--muted');
+  const xt=o.xt||ticks(xr[0],xr[1],6), yt=o.yt||ticks(yr[0],yr[1],6);
+  c.textAlign='center';c.textBaseline='top';xt.forEach(v=>{const x=Math.round(X(v))+.5;c.beginPath();c.moveTo(x,pad.t);c.lineTo(x,h-pad.b);c.stroke();c.fillText(fmt(v,v%1?1:0),x,h-pad.b+5);});
+  c.textAlign='right';c.textBaseline='middle';yt.forEach(v=>{const y=Math.round(Y(v))+.5;c.beginPath();c.moveTo(pad.l,y);c.lineTo(w-pad.r,y);c.stroke();c.fillText(o.yf?o.yf(v):fmt(v,v%1?1:0),pad.l-6,y);});
+  c.strokeStyle=css('--axis');
+  if(xr[0]<0&&xr[1]>0){c.beginPath();c.moveTo(Math.round(X(0))+.5,pad.t);c.lineTo(Math.round(X(0))+.5,h-pad.b);c.stroke();}
+  if(yr[0]<0&&yr[1]>0){c.beginPath();c.moveTo(pad.l,Math.round(Y(0))+.5);c.lineTo(w-pad.r,Math.round(Y(0))+.5);c.stroke();}
+  if(o.xl){c.fillStyle=css('--muted');c.textAlign='right';c.textBaseline='bottom';c.fillText(o.xl,w-pad.r-2,h-pad.b-3);}
+  if(o.yl){c.fillStyle=css('--muted');c.textAlign='left';c.textBaseline='top';c.fillText(o.yl,pad.l+4,pad.t+2);}
+  return {X,Y,pad,xr,yr};
+}
+function clip(g,F){const {c,w,h}=g;c.save();c.beginPath();c.rect(F.pad.l,F.pad.t,w-F.pad.l-F.pad.r,h-F.pad.t-F.pad.b);c.clip();}
+const PP={l:34,r:10,t:8,b:22};
+let phaseFrame=null, tdFrame=null;
+
+function drawPhase(){
+  const g=prep($('cp'),true), c=g.c, F=axes(g,[-R,R],[-R,R],PP,{xl:'x',yl:'y'});phaseFrame=F;
+  clip(g,F);
+  if($('showField').checked){
+    const n=17, step=2*R/(n-1);let vmax=1e-9;
+    for(let i=0;i<n;i++)for(let j=0;j<n;j++){const v=f(-R+i*step,-R+j*step);vmax=Math.max(vmax,Math.hypot(v[0],v[1]));}
+    c.strokeStyle=css('--axis');c.fillStyle=css('--axis');
+    for(let i=0;i<n;i++)for(let j=0;j<n;j++){
+      const x=-R+i*step,y=-R+j*step,v=f(x,y),s=Math.hypot(v[0],v[1]);if(s<1e-9)continue;
+      const len=(F.X(step)-F.X(0))*0.42, ux=v[0]/s, uy=v[1]/s, px=F.X(x), py=F.Y(y), qx=px+ux*len, qy=py-uy*len;
+      c.globalAlpha=0.35+0.55*Math.sqrt(s/vmax);c.lineWidth=1.1;c.beginPath();c.moveTo(px-ux*len*0.2,py+uy*len*0.2);c.lineTo(qx,qy);c.stroke();
+      const ah=4, ang=Math.atan2(-uy,ux);c.beginPath();c.moveTo(qx,qy);c.lineTo(qx-ah*Math.cos(ang-0.45),qy-ah*Math.sin(ang-0.45));c.lineTo(qx-ah*Math.cos(ang+0.45),qy-ah*Math.sin(ang+0.45));c.fill();
+    }
+    c.globalAlpha=1;
+  }
+  const lineThrough=(dx,dy,color,dash,lw)=>{const n=Math.hypot(dx,dy);if(n<1e-9)return;c.strokeStyle=color;c.lineWidth=lw;c.setLineDash(dash);c.beginPath();c.moveTo(F.X(-10*dx/n),F.Y(-10*dy/n));c.lineTo(F.X(10*dx/n),F.Y(10*dy/n));c.stroke();c.setLineDash([]);};
+  if($('showNull').checked){lineThrough(A[1],-A[0],css('--nx'),[6,4],1.6);lineThrough(A[3],-A[2],css('--ny'),[6,4],1.6);}
+  const e=eig();
+  if($('showEig').checked&&e.disc>=0){[0,1].forEach(i=>{const v=eigvec(e.re[i]);lineThrough(v[0],v[1],css('--eig'),[],2);});}
+  const n=nVisible();
+  trajs.forEach((tr,k)=>{
+    const m=Math.min(n,tr.xs.length);
+    c.strokeStyle=css('--traj');c.lineWidth=k===trajs.length-1?2.2:1.6;c.globalAlpha=k===trajs.length-1?1:0.75;c.lineJoin='round';c.beginPath();
+    for(let i=0;i<m;i++){const x=F.X(tr.xs[i]),y=F.Y(tr.ys[i]);i?c.lineTo(x,y):c.moveTo(x,y);}c.stroke();
+    if(m>1){const i=m-1,j=Math.max(0,m-6),ang=Math.atan2(F.Y(tr.ys[i])-F.Y(tr.ys[j]),F.X(tr.xs[i])-F.X(tr.xs[j])),x=F.X(tr.xs[i]),y=F.Y(tr.ys[i]);
+      if(Math.abs(tr.xs[i])<R&&Math.abs(tr.ys[i])<R&&Math.hypot(tr.xs[i]-tr.xs[j],tr.ys[i]-tr.ys[j])>1e-3){c.fillStyle=css('--traj');c.beginPath();c.moveTo(x,y);c.lineTo(x-7*Math.cos(ang-0.45),y-7*Math.sin(ang-0.45));c.lineTo(x-7*Math.cos(ang+0.45),y-7*Math.sin(ang+0.45));c.fill();}}
+    c.globalAlpha=1;c.fillStyle=css('--surface');c.strokeStyle=css('--traj');c.lineWidth=1.8;c.beginPath();c.arc(F.X(tr.x0),F.Y(tr.y0),4,0,7);c.fill();c.stroke();
+  });
+  c.restore();
+  const cl=classify(e), col=cl.kind==='stable'?css('--stable'):cl.kind==='unstable'?css('--unstable'):css('--axis');
+  c.fillStyle=col;c.strokeStyle=css('--surface');c.lineWidth=2;c.beginPath();c.arc(F.X(0),F.Y(0),6,0,7);c.fill();c.stroke();
+}
+function drawTD(){
+  const g=prep($('ctd')), c=g.c, F=axes(g,[-6,6],[-4,9],{l:30,r:10,t:8,b:22},{xl:'τ',yl:'Δ'});tdFrame=F;
+  clip(g,F);
+  c.fillStyle=css('--unstable');c.globalAlpha=0.08;c.fillRect(F.pad.l,F.Y(0),g.w-F.pad.l-F.pad.r,F.Y(-4)-F.Y(0));c.globalAlpha=1;
+  c.strokeStyle=css('--ink');c.lineWidth=1.6;c.beginPath();for(let t=-6;t<=6.001;t+=0.05){const x=F.X(t),y=F.Y(t*t/4);t>-6?c.lineTo(x,y):c.moveTo(x,y);}c.stroke();
+  c.font='11.5px "DM Sans", system-ui';c.fillStyle=css('--muted');c.textAlign='center';c.textBaseline='middle';
+  [['foco estable',-1.6,6],['foco inestable',1.6,6],['nodo estable',-4.6,2],['nodo inestable',4.6,2],['silla',0,-2.4]].forEach(([s,x,y])=>c.fillText(s,F.X(x),F.Y(y)));
+  c.save();c.translate(F.X(0)+8,F.Y(7.6));c.textAlign='left';c.fillText('centros (τ = 0)',0,0);c.restore();
+  const e=eig(), x=Math.max(-6,Math.min(6,e.tr)), y=Math.max(-4,Math.min(9,e.det));
+  const cl=classify(e);c.fillStyle=cl.kind==='stable'?css('--stable'):cl.kind==='unstable'?css('--unstable'):css('--axis');
+  c.strokeStyle=css('--surface');c.lineWidth=2;c.beginPath();c.arc(F.X(x),F.Y(y),7,0,7);c.fill();c.stroke();
+  c.restore();
+}
+function drawT(){
+  const g=prep($('ct')), c=g.c, tr=trajs[trajs.length-1];
+  let lo=-R,hi=R;
+  if(tr){const m=Math.min(nVisible(),tr.xs.length);for(let i=0;i<m;i++){lo=Math.min(lo,tr.xs[i],tr.ys[i]);hi=Math.max(hi,tr.xs[i],tr.ys[i]);}}
+  lo=Math.max(lo,-15);hi=Math.min(hi,15);
+  const F=axes(g,[0,TMAX],[lo,hi],{l:40,r:10,t:8,b:22},{xl:'t',yt:ticks(lo,hi,4)});
+  if(!tr){c.fillStyle=css('--muted');c.textAlign='center';c.fillText('Haz clic en el plano de fase',g.w/2,g.h/2);return;}
+  clip(g,F);const m=Math.min(nVisible(),tr.xs.length);
+  [['xs','--x'],['ys','--y']].forEach(([k,col])=>{c.strokeStyle=css(col);c.lineWidth=1.8;c.beginPath();for(let i=0;i<m;i++){const x=F.X(tr.ts[i]),y=F.Y(tr[k][i]);i?c.lineTo(x,y):c.moveTo(x,y);}c.stroke();});
+  c.restore();
+}
+function nVisible(){return isFinite(reveal)?reveal:Infinity;}
+function updateReadout(){
+  const e=eig(), cl=classify(e);
+  const lam=i=>e.im[i]===0?fmt(e.re[i]):fmt(e.re[i])+(e.im[i]>0?' + ':' − ')+fmt(Math.abs(e.im[i]))+'i';
+  $('r-l1').textContent=lam(0);$('r-l2').textContent=lam(1);$('r-tr').textContent=fmt(e.tr);$('r-det').textContent=fmt(e.det);
+  $('cls').textContent=cl.name;$('desc').textContent=cl.text;
+  $('cls-dot').style.background=cl.kind==='stable'?'var(--stable)':cl.kind==='unstable'?'var(--unstable)':'var(--axis)';
+}
+function drawAll(){drawPhase();drawTD();drawT();updateReadout();}
+
+// ---------- Interacción ----------
+function syncUI(){['a','b','c','d'].forEach((k,i)=>{$(k).value=A[i];$('o-'+k).textContent=fmt(A[i]);});}
+function resetSeeds(){trajs=SEEDS.map(([x,y])=>integrate(x,y));}
+function setPreset(name){
+  A=[...PRESETS[name]];syncUI();
+  document.querySelectorAll('#presets button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.p===name));
+  resetSeeds();if(playing)stop();drawAll();
+}
+function clearPreset(){document.querySelectorAll('#presets button').forEach(b=>b.setAttribute('aria-pressed','false'));}
+document.querySelectorAll('#presets button').forEach(b=>b.addEventListener('click',()=>setPreset(b.dataset.p)));
+['a','b','c','d'].forEach((k,i)=>$(k).addEventListener('input',e=>{A[i]=+e.target.value;$('o-'+k).textContent=fmt(A[i]);clearPreset();recompute();drawAll();}));
+['showField','showNull','showEig'].forEach(id=>$(id).addEventListener('change',drawPhase));
+function pointerToPhase(e){const cv=$('cp'),r=cv.getBoundingClientRect(),F=phaseFrame;const px=e.clientX-r.left,py=e.clientY-r.top;
+  const x=F.xr[0]+(px-F.pad.l)/(r.width-F.pad.l-F.pad.r)*(F.xr[1]-F.xr[0]);const y=F.yr[0]+(r.height-F.pad.b-py)/(r.height-F.pad.t-F.pad.b)*(F.yr[1]-F.yr[0]);
+  return [Math.max(-R,Math.min(R,x)),Math.max(-R,Math.min(R,y))];}
+let dragging=false;
+$('cp').addEventListener('pointerdown',e=>{dragging=true;$('cp').setPointerCapture(e.pointerId);const [x,y]=pointerToPhase(e);trajs.push(integrate(x,y));if(trajs.length>30)trajs.shift();if(playing)stop();drawAll();});
+$('cp').addEventListener('pointermove',e=>{if(!dragging)return;const [x,y]=pointerToPhase(e);trajs[trajs.length-1]=integrate(x,y);drawAll();});
+['pointerup','pointercancel'].forEach(t=>$('cp').addEventListener(t,()=>{dragging=false;}));
+$('ctd').addEventListener('pointerdown',e=>{
+  const cv=$('ctd'),r=cv.getBoundingClientRect(),F=tdFrame;
+  const tau=F.xr[0]+(e.clientX-r.left-F.pad.l)/(r.width-F.pad.l-F.pad.r)*(F.xr[1]-F.xr[0]);
+  const det=F.yr[0]+(r.height-F.pad.b-(e.clientY-r.top))/(r.height-F.pad.t-F.pad.b)*(F.yr[1]-F.yr[0]);
+  // A = [[τ/2, b], [c, τ/2]] con b·c = τ²/4 − Δ tiene traza τ y determinante Δ.
+  const q2=v=>Math.round(v*20)/20, half=Math.max(-3,Math.min(3,q2(tau/2))), q=det-half*half, s=Math.min(3,Math.sqrt(Math.abs(q)));
+  A=q>=0?[half,q2(-s),q2(s),half]:[half,q2(s),q2(s),half];
+  syncUI();clearPreset();recompute();if(playing)stop();drawAll();
+});
+$('clear').addEventListener('click',()=>{trajs=[];if(playing)stop();drawAll();});
+function play(){
+  if(playing){stop();return;}
+  if(!trajs.length)resetSeeds();
+  playing=true;$('play').textContent='Detener';reveal=0;
+  const total=Math.max(...trajs.map(t=>t.xs.length)), start=performance.now(), dur=4000;
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const tick=now=>{const fr=reduce?1:Math.min(1,(now-start)/dur);reveal=Math.max(2,Math.round(fr*total));drawAll();if(fr<1&&playing)raf=requestAnimationFrame(tick);else stop();};
+  raf=requestAnimationFrame(tick);
+}
+function stop(){playing=false;cancelAnimationFrame(raf);reveal=Infinity;$('play').textContent='Animar';drawAll();}
+$('play').addEventListener('click',play);
+let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(drawAll,80);});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',drawAll);
+$('theme').addEventListener('click',()=>{const r=document.documentElement;const dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+  r.dataset.theme=dark?'light':'dark';try{localStorage.setItem('lin-theme',r.dataset.theme);}catch(e){}drawAll();});
+try{const t=localStorage.getItem('lin-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(drawAll);
+setPreset('focus');
+})();
+</script>
+</body>
+</html>

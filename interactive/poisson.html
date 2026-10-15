@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trenes de spikes Poisson: azar y variabilidad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EAEEEA; --surface:#F8FAF8; --ink:#1F2A24; --muted:#5C6B62; --grid:#D3DBD5; --axis:#9DABA2;
+  --spk:#1E6B52; --reg:#1F2A24; --theory:#1F2A24; --hist:#3E8E73; --isi:#C26A2E; --band:#6A5ACD;
+  --focus:#1E6B52;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#111613; --surface:#18201B; --ink:#DEE7E1; --muted:#97A79D; --grid:#27312B; --axis:#4F5D54;
+    --spk:#62CFA6; --reg:#DEE7E1; --theory:#DEE7E1; --hist:#62CFA6; --isi:#F0A266; --band:#A99BF5; --focus:#62CFA6;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111613; --surface:#18201B; --ink:#DEE7E1; --muted:#97A79D; --grid:#27312B; --axis:#4F5D54;
+  --spk:#62CFA6; --reg:#DEE7E1; --theory:#DEE7E1; --hist:#62CFA6; --isi:#F0A266; --band:#A99BF5; --focus:#62CFA6;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Outfit,system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1280px;margin:0 auto;padding:28px 20px 60px}
+header{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px 40px;align-items:end;margin-bottom:26px}
+h1{font-family:"Source Serif 4",Georgia,serif;font-weight:500;font-size:clamp(30px,4.2vw,50px);line-height:1.04;margin:0;letter-spacing:-.01em}
+h1 small{display:block;font-size:.5em;color:var(--muted);font-weight:400;margin-top:8px;letter-spacing:0}
+header p{margin:0;color:var(--muted);max-width:60ch;font-size:15.5px}
+h2{font-family:"Source Serif 4",Georgia,serif;font-weight:500;font-size:22px;margin:0 0 4px}
+h3{font-size:14px;font-weight:600;margin:0 0 8px}
+.layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;align-items:start}
+aside{background:var(--surface);border-radius:14px;padding:18px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+.panel{background:var(--surface);border-radius:14px;padding:16px 16px 12px}
+.stack{display:grid;gap:14px}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.cap{color:var(--muted);font-size:13.5px;margin:2px 0 10px;max-width:72ch}
+canvas{display:block;width:100%;touch-action:pan-y}
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
+.presets button{font:inherit;font-size:13px;border:1px solid var(--grid);background:transparent;color:var(--ink);border-radius:999px;padding:5px 11px;cursor:pointer}
+.presets button:hover{border-color:var(--axis)}
+.presets button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+fieldset{border:0;padding:0;margin:0 0 16px}
+legend{font-weight:600;font-size:14px;margin-bottom:8px;padding:0}
+.ctl{margin-bottom:10px}
+.ctl label{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:2px}
+.ctl output{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--spk)}
+.btns{display:flex;gap:8px}
+.btn{font:inherit;font-size:14px;font-weight:500;flex:1;padding:9px 10px;border-radius:9px;border:0;cursor:pointer;background:var(--spk);color:var(--surface)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--grid)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted);margin-bottom:6px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.readout{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:8px 0 2px}
+.readout div{font-size:12.5px;color:var(--muted)}
+.readout b{display:block;font-size:19px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
+.readout small{color:var(--muted);font-size:12px}
+.theory{margin-top:34px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+.theory .panel{padding:20px 22px}
+.theory p,.theory li{font-family:"Source Serif 4",Georgia,serif;font-size:17px;line-height:1.6;max-width:68ch}
+.theory ul{padding-left:20px;margin:8px 0}
+.eq{font-family:"Source Serif 4",Georgia,serif;font-size:17px;background:var(--bg);border-radius:10px;padding:12px 14px;margin:10px 0;overflow-x:auto;white-space:nowrap;line-height:1.9}
+.note{font-size:13px;color:var(--muted)}
+.themebtn{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);font:inherit;font-size:13px;border:1px solid var(--grid);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 12px;cursor:pointer}
+@media (max-width:980px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  aside{position:static}
+  header,.theory,.row2{grid-template-columns:minmax(0,1fr)}
+  .readout{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Trenes de spikes Poisson<small>Azar, variabilidad y cuántas repeticiones hacen falta</small></h1>
+  <p>Una neurona que dispara “al azar” con tasa constante se modela como un proceso de Poisson: cada instante tiene la misma probabilidad de contener un spike, sin memoria del anterior. Cambia la tasa, la ventana, el número de repeticiones y el período refractario, y compara las distribuciones simuladas con las teóricas.</p>
+</header>
+
+<div class="layout">
+<aside>
+  <h3>Experimentos</h3>
+  <div class="presets" id="presets">
+    <button data-p="base" aria-pressed="true">Poisson a 20 Hz</button>
+    <button data-p="few">Pocas repeticiones</button>
+    <button data-p="refr">Con refractario</button>
+    <button data-p="fast">Tasa alta, refractario</button>
+    <button data-p="short">Ventana corta</button>
+  </div>
+
+  <fieldset>
+    <legend>Proceso</legend>
+    <div class="ctl"><label for="rate"><span>Tasa r</span> <output id="o-rate"></output></label><input id="rate" type="range" min="1" max="100" step="1"></div>
+    <div class="ctl"><label for="tref"><span>Refractario t<sub>ref</sub></span> <output id="o-tref"></output></label><input id="tref" type="range" min="0" max="15" step="0.5"></div>
+  </fieldset>
+  <fieldset>
+    <legend>Experimento</legend>
+    <div class="ctl"><label for="T"><span>Ventana T</span> <output id="o-T"></output></label><input id="T" type="range" min="0.2" max="5" step="0.1"></div>
+    <div class="ctl"><label for="trials"><span>Repeticiones</span> <output id="o-trials"></output></label><input id="trials" type="range" min="2" max="500" step="1"></div>
+  </fieldset>
+
+  <div class="btns">
+    <button class="btn" id="seed">Nueva semilla</button>
+    <button class="btn ghost" id="reset">Valores originales</button>
+  </div>
+</aside>
+
+<main class="stack">
+  <section class="panel">
+    <h2>Raster</h2>
+    <p class="cap" id="cap"></p>
+    <div class="legend"><span><i style="background:var(--reg)"></i>tren regular con la misma tasa (arriba)</span><span><i style="background:var(--spk)"></i>repeticiones del proceso aleatorio</span></div>
+    <canvas id="cr" height="240" aria-label="Raster de spikes"></canvas>
+    <div class="readout">
+      <div>Conteo medio<b id="r-mean">–</b><small id="r-mean-t"></small></div>
+      <div>Factor de Fano<b id="r-fano">–</b><small id="r-fano-t"></small></div>
+      <div>CV de los ISI<b id="r-cv">–</b><small id="r-cv-t"></small></div>
+      <div>Tasa estimada<b id="r-rate">–</b><small id="r-rate-t"></small></div>
+    </div>
+  </section>
+
+  <div class="row2">
+    <section class="panel">
+      <h2>Conteos por ventana</h2>
+      <p class="cap">Histograma del número de spikes en cada repetición. La línea es la distribución de Poisson con media rT. Con refractario, los conteos se concentran más (Fano &lt; 1).</p>
+      <div class="legend"><span><i style="background:var(--hist)"></i>simulación</span><span><i style="background:var(--theory)"></i>Poisson(rT)</span></div>
+      <canvas id="cc" height="240" aria-label="Histograma de conteos"></canvas>
+    </section>
+    <section class="panel">
+      <h2>Intervalos entre spikes</h2>
+      <p class="cap">Sin refractario, los ISI siguen una exponencial: los intervalos cortos son los más probables. Con refractario, la exponencial se desplaza t<sub>ref</sub> a la derecha.</p>
+      <div class="legend"><span><i style="background:var(--isi)"></i>simulación</span><span><i style="background:var(--theory)"></i>densidad teórica</span></div>
+      <canvas id="ci" height="240" aria-label="Histograma de intervalos"></canvas>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2>¿Cuántas repeticiones hacen falta?</h2>
+    <p class="cap">Estimación de la tasa usando las primeras n repeticiones. La banda es ±2 errores estándar teóricos, √(r / nT) en un proceso de Poisson: el error baja como 1/√n, así que cuadruplicar las repeticiones solo lo reduce a la mitad.</p>
+    <div class="legend"><span><i style="background:var(--spk)"></i>estimación acumulada</span><span><i style="background:var(--band)"></i>r ± 2 EE</span></div>
+    <canvas id="ce" height="200" aria-label="Convergencia de la estimación de tasa"></canvas>
+  </section>
+</main>
+</div>
+
+<section class="theory">
+  <div class="panel">
+    <h2>Las ecuaciones</h2>
+    <p>En un proceso de Poisson homogéneo de tasa r, el número de spikes N en una ventana T sigue</p>
+    <div class="eq">P(N = k) = (rT)<sup>k</sup> e<sup>−rT</sup> / k!, &nbsp;&nbsp; E[N] = Var[N] = rT</div>
+    <p>y los intervalos entre spikes (ISI) son exponenciales e independientes:</p>
+    <div class="eq">p(Δ) = r e<sup>−rΔ</sup>, &nbsp;&nbsp; E[Δ] = 1/r, &nbsp; CV = σ<sub>Δ</sub>/E[Δ] = 1</div>
+    <p>Con un período refractario absoluto, cada ISI es t<sub>ref</sub> más una exponencial de tasa λ elegida para conservar la tasa media r:</p>
+    <div class="eq">Δ = t<sub>ref</sub> + Exp(λ), &nbsp; 1/λ = 1/r − t<sub>ref</sub>, &nbsp; CV = 1 − r·t<sub>ref</sub>, &nbsp; Fano → CV²</div>
+    <p class="note">El factor de Fano tiende a CV² en ventanas largas (proceso de renovación). Generación por intervalos con un generador pseudoaleatorio con semilla, para que los resultados sean reproducibles.</p>
+  </div>
+  <div class="panel">
+    <h2>Qué observar</h2>
+    <ul>
+      <li><b>Misma tasa, trenes distintos.</b> El tren regular y el de Poisson tienen la misma tasa media, pero el de Poisson forma grupos y huecos: la tasa no describe toda la estadística.</li>
+      <li><b>Fano y CV ≈ 1</b> son la firma de Poisson. Neuronas corticales reales suelen dar valores cercanos a 1, una de las razones por las que Poisson es el modelo de referencia.</li>
+      <li><b>El refractario regulariza.</b> Sube t<sub>ref</sub> con tasa alta: los ISI cortos desaparecen, el CV baja y el tren se parece más al regular.</li>
+      <li><b>Una repetición no basta.</b> Con “Pocas repeticiones” la tasa estimada puede alejarse bastante de la real. El error estándar baja como 1/√(nT): más repeticiones o ventanas más largas.</li>
+    </ul>
+  </div>
+</section>
+
+<button class="themebtn" id="theme" aria-label="Cambiar tema">Tema</button>
+
+<script>
+(function(){
+"use strict";
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const DEF={rate:20,tref:0,T:2,trials:200};
+const PRESETS={base:{},few:{trials:5},refr:{tref:5},fast:{rate:80,tref:8},short:{T:0.3,trials:30}};
+const CAPS={
+  base:'Cada fila es una repetición de 2 s a 20 Hz. Los spikes forman grupos y huecos al azar, aunque la tasa sea la misma en todas.',
+  few:'Con solo 5 repeticiones, la tasa estimada y la variabilidad son poco fiables: mira la banda de error abajo.',
+  refr:'Un período refractario de 5 ms a 20 Hz casi no cambia nada: solo el 10 % del intervalo medio queda prohibido.',
+  fast:'A 80 Hz con 8 ms de refractario, el 64 % de cada intervalo medio está prohibido: el tren se vuelve casi regular (CV ≈ 0,36).',
+  short:'Con ventanas de 300 ms solo se esperan 6 spikes: muchos ensayos tienen 3 o 9, y estimar la tasa de uno solo es muy impreciso. El CV sale algo menor que 1 porque los intervalos más largos no caben en la ventana y quedan sin medir.'
+};
+let P={...DEF}, seed=10, data=null;
+const $=id=>document.getElementById(id);
+const fmt=(v,d=1)=>(Math.round(v*10**d)/10**d).toLocaleString('es',{minimumFractionDigits:d,maximumFractionDigits:d});
+const units={rate:v=>fmt(v,0)+' Hz',tref:v=>fmt(v)+' ms',T:v=>fmt(v)+' s',trials:v=>fmt(v,0)};
+const KEYS=Object.keys(units);
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function syncUI(){KEYS.forEach(k=>{$(k).value=P[k];$('o-'+k).textContent=units[k](P[k]);});}
+
+// ---------- Modelo ----------
+function feasible(p){return p.tref/1000<1/p.rate*0.95;}
+function generate(p,seed){
+  const rng=mulberry32(seed), tref=p.tref/1000, lam=1/(1/p.rate-tref), trains=[];
+  for(let k=0;k<p.trials;k++){
+    // Se arranca 10 intervalos medios antes de t = 0 para que el proceso esté en régimen estacionario.
+    const sp=[];let t=-10/p.rate;
+    while(true){t+=tref-Math.log(1-rng())/lam;if(t>p.T)break;if(t>=0)sp.push(t);}
+    trains.push(sp);
+  }
+  return trains;
+}
+function stats(p,trains){
+  const counts=trains.map(s=>s.length), n=counts.length, mean=counts.reduce((a,b)=>a+b,0)/n;
+  const varc=counts.reduce((a,b)=>a+(b-mean)**2,0)/Math.max(1,n-1);
+  const isi=[];trains.forEach(s=>{for(let i=1;i<s.length;i++)isi.push(s[i]-s[i-1]);});
+  const mi=isi.length?isi.reduce((a,b)=>a+b,0)/isi.length:NaN, sd=isi.length>1?Math.sqrt(isi.reduce((a,b)=>a+(b-mi)**2,0)/(isi.length-1)):NaN;
+  const cum=[];let acc=0;counts.forEach((c,i)=>{acc+=c;cum.push(acc/((i+1)*p.T));});
+  return {counts,mean,fano:mean>0?varc/mean:NaN,isi,cv:sd/mi,rateHat:mean/p.T,cum};
+}
+
+// ---------- Gráficas ----------
+function prep(cv){
+  const dpr=window.devicePixelRatio||1, w=cv.clientWidth, h=+cv.getAttribute('height');
+  if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px';}
+  const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);return {c,w,h};
+}
+const PAD={l:46,r:12,t:8,b:22};
+function ticks(a,b,n){const span=b-a, step0=span/n, mag=10**Math.floor(Math.log10(step0)), s=[1,2,5,10].map(f=>f*mag).find(f=>f>=step0);const out=[];for(let v=Math.ceil(a/s)*s;v<=b+1e-9;v+=s)out.push(+v.toFixed(6));return out;}
+function frame(g,xr,yr,o={}){
+  const {c,w,h}=g, pad={...PAD,...(o.pad||{})};
+  const X=x=>pad.l+(x-xr[0])/(xr[1]-xr[0])*(w-pad.l-pad.r), Y=y=>h-pad.b-(y-yr[0])/(yr[1]-yr[0])*(h-pad.t-pad.b);
+  c.font='11px Outfit, system-ui, sans-serif';c.textBaseline='middle';c.strokeStyle=css('--grid');c.fillStyle=css('--muted');c.lineWidth=1;
+  (o.yt||[]).forEach(v=>{const y=Math.round(Y(v))+.5;c.beginPath();c.moveTo(pad.l,y);c.lineTo(w-pad.r,y);c.stroke();c.textAlign='right';c.fillText(o.yf?o.yf(v):v,pad.l-6,y);});
+  if(o.xt!==false){const xt=o.xt||ticks(xr[0],xr[1],w>500?10:5);c.textAlign='center';c.textBaseline='top';xt.forEach(v=>c.fillText(o.xf?o.xf(v):fmt(v,v%1?(Math.abs(v)<1?2:1):0),X(v),h-pad.b+5));c.textBaseline='middle';}
+  if(o.xl){c.textAlign='right';c.textBaseline='bottom';c.fillText(o.xl,w-pad.r,h-pad.b-3);c.textBaseline='middle';}
+  if(o.yl){c.save();c.translate(10,(h-pad.b+pad.t)/2);c.rotate(-Math.PI/2);c.textAlign='center';c.fillText(o.yl,0,0);c.restore();}
+  return {X,Y,pad};
+}
+function line(g,f,xs,ys,color,lw=1.8,dash){const {c}=g;c.strokeStyle=color;c.lineWidth=lw;c.setLineDash(dash||[]);c.beginPath();xs.forEach((x,i)=>{const px=f.X(x),py=f.Y(ys[i]);i?c.lineTo(px,py):c.moveTo(px,py);});c.stroke();c.setLineDash([]);}
+
+function drawRaster(){
+  const g=prep($('cr')),c=g.c, rows=Math.min(30,data.trains.length);
+  const f=frame(g,[0,P.T],[0,rows+1.6],{yt:[],xl:'t (s)'});
+  const regular=[];for(let t=1/P.rate;t<=P.T+1e-9;t+=1/P.rate)regular.push(t);
+  c.strokeStyle=css('--reg');c.lineWidth=1.4;regular.forEach(t=>{const x=f.X(t);c.beginPath();c.moveTo(x,f.Y(rows+1.5));c.lineTo(x,f.Y(rows+0.8));c.stroke();});
+  c.strokeStyle=css('--spk');c.lineWidth=1.2;
+  for(let r=0;r<rows;r++){const y0=f.Y(rows-r-0.15),y1=f.Y(rows-r-0.85);data.trains[r].forEach(t=>{const x=f.X(t);c.beginPath();c.moveTo(x,y0);c.lineTo(x,y1);c.stroke();});}
+  c.fillStyle=css('--muted');c.textAlign='right';c.fillText('regular',f.pad.l-6,f.Y(rows+1.15));
+  c.save();c.translate(12,(f.Y(0)+f.Y(rows))/2);c.rotate(-Math.PI/2);c.textAlign='center';c.fillText(rows<data.trains.length?`primeras ${rows} de ${data.trains.length}`:'repeticiones',0,0);c.restore();
+}
+function poissonPmf(k,mu){let lp=-mu+k*Math.log(mu);for(let i=2;i<=k;i++)lp-=Math.log(i);return Math.exp(lp);}
+function drawCounts(){
+  const g=prep($('cc')),c=g.c, s=data.s, mu=P.rate*P.T;
+  const lo=Math.max(0,Math.floor(Math.min(Math.min(...s.counts),mu-4*Math.sqrt(mu)))), hi=Math.ceil(Math.max(Math.max(...s.counts),mu+4*Math.sqrt(mu)))+1;
+  const freq=new Array(hi-lo+1).fill(0);s.counts.forEach(k=>freq[k-lo]++);const prob=freq.map(v=>v/s.counts.length);
+  let top=0;prob.forEach(v=>top=Math.max(top,v));for(let k=lo;k<=hi;k++)top=Math.max(top,poissonPmf(k,mu));top*=1.15;
+  const f=frame(g,[lo-0.5,hi+0.5],[0,top],{yt:ticks(0,top,4),yf:v=>fmt(v,2),xt:ticks(lo,hi,6).filter(v=>v%1===0),yl:'probabilidad',xl:'spikes en T'});
+  const bw=Math.max(1,f.X(1)-f.X(0)-1);
+  c.fillStyle=css('--hist');c.globalAlpha=.6;prob.forEach((p,i)=>{if(p>0)c.fillRect(f.X(lo+i)-bw/2,f.Y(p),bw,f.Y(0)-f.Y(p));});c.globalAlpha=1;
+  const ks=[],ps=[];for(let k=lo;k<=hi;k++){ks.push(k);ps.push(poissonPmf(k,mu));}
+  line(g,f,ks,ps,css('--theory'),1.6);c.fillStyle=css('--theory');ks.forEach((k,i)=>{c.beginPath();c.arc(f.X(k),f.Y(ps[i]),2,0,7);c.fill();});
+}
+function drawISI(){
+  const g=prep($('ci')),c=g.c, isi=data.s.isi.map(v=>v*1000), tref=P.tref, lam=1/(1000/P.rate-tref);
+  if(isi.length<5){frame(g,[0,1],[0,1],{yt:[],xt:false});c.fillStyle=css('--muted');c.textAlign='center';c.fillText('Muy pocos intervalos',g.w/2,g.h/2);return;}
+  const hiX=Math.min(Math.max(...isi),tref+6/lam)*1.02, bins=40, w=hiX/bins, counts=new Array(bins).fill(0);
+  isi.forEach(v=>{if(v<hiX)counts[Math.floor(v/w)]++;});
+  const dens=counts.map(n=>n/(isi.length*w));
+  const top=Math.max(Math.max(...dens),lam)*1.12;
+  const f=frame(g,[0,hiX],[0,top],{yt:ticks(0,top,4),yf:v=>fmt(v,3),yl:'densidad (1/ms)',xl:'ISI (ms)',pad:{l:58}});
+  c.fillStyle=css('--isi');c.globalAlpha=.6;dens.forEach((d,i)=>{if(d>0)c.fillRect(f.X(i*w)+0.5,f.Y(d),Math.max(1,f.X(w)-f.X(0)-1),f.Y(0)-f.Y(d));});c.globalAlpha=1;
+  const xs=[],ys=[];for(let x=0;x<=hiX;x+=hiX/400){xs.push(x);ys.push(x<tref?0:lam*Math.exp(-lam*(x-tref)));}
+  line(g,f,xs,ys,css('--theory'),1.7);
+}
+function drawEst(){
+  const g=prep($('ce')),c=g.c, cum=data.s.cum, n=cum.length, r=P.rate;
+  let lo=r,hi=r;cum.forEach(v=>{lo=Math.min(lo,v);hi=Math.max(hi,v);});const se1=Math.sqrt(r/P.T);lo=Math.min(lo,r-2.2*se1);hi=Math.max(hi,r+2.2*se1);
+  const f=frame(g,[1,n],[lo,hi],{yt:ticks(lo,hi,4),yf:v=>fmt(v,0),yl:'Hz',xl:'repeticiones usadas n',xt:ticks(1,n,8).filter(v=>v>=1&&v%1===0)});
+  c.fillStyle=css('--band');c.globalAlpha=.15;c.beginPath();
+  for(let k=1;k<=n;k++)c.lineTo(f.X(k),f.Y(r+2*Math.sqrt(r/(k*P.T))));for(let k=n;k>=1;k--)c.lineTo(f.X(k),f.Y(r-2*Math.sqrt(r/(k*P.T))));c.fill();c.globalAlpha=1;
+  c.strokeStyle=css('--band');c.setLineDash([4,4]);c.beginPath();c.moveTo(f.X(1),f.Y(r));c.lineTo(f.X(n),f.Y(r));c.stroke();c.setLineDash([]);
+  line(g,f,cum.map((_,i)=>i+1),cum,css('--spk'),1.8);
+}
+function updateReadout(){
+  const s=data.s, r=P.rate, tref=P.tref/1000, cvT=1-r*tref;
+  $('r-mean').textContent=fmt(s.mean);$('r-mean-t').textContent='teoría '+fmt(r*P.T);
+  $('r-fano').textContent=isFinite(s.fano)?fmt(s.fano,2):'–';$('r-fano-t').textContent='teoría ≈ '+fmt(tref>0?cvT*cvT:1,2);
+  $('r-cv').textContent=isFinite(s.cv)?fmt(s.cv,2):'–';$('r-cv-t').textContent='teoría '+fmt(cvT,2);
+  $('r-rate').textContent=fmt(s.rateHat)+' Hz';$('r-rate-t').textContent='± '+fmt(Math.sqrt(r/(P.trials*P.T)))+' Hz (1 EE)';
+}
+function drawAll(){if(!data)return;drawRaster();drawCounts();drawISI();drawEst();updateReadout();}
+function run(){
+  if(!feasible(P)){P.tref=Math.floor(0.9*1000/P.rate*2)/2;syncUI();}
+  const trains=generate(P,seed);data={trains,s:stats(P,trains)};drawAll();
+}
+
+// ---------- Eventos ----------
+function setPreset(name){
+  P={...DEF,...PRESETS[name]};
+  document.querySelectorAll('#presets button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.p===name));
+  $('cap').textContent=CAPS[name];syncUI();run();
+}
+function clearPreset(){document.querySelectorAll('#presets button').forEach(b=>b.setAttribute('aria-pressed','false'));$('cap').textContent='Parámetros modificados. Se muestran hasta 30 repeticiones; las estadísticas usan todas.';}
+document.querySelectorAll('#presets button').forEach(b=>b.addEventListener('click',()=>setPreset(b.dataset.p)));
+KEYS.forEach(k=>$(k).addEventListener('input',e=>{P[k]=+e.target.value;$('o-'+k).textContent=units[k](P[k]);clearPreset();run();}));
+$('seed').addEventListener('click',()=>{seed=Math.floor(Math.random()*1e6);run();});
+$('reset').addEventListener('click',()=>setPreset('base'));
+let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(drawAll,80);});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',drawAll);
+$('theme').addEventListener('click',()=>{const r=document.documentElement;const dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+  r.dataset.theme=dark?'light':'dark';try{localStorage.setItem('poisson-theme',r.dataset.theme);}catch(e){}drawAll();});
+try{const t=localStorage.getItem('poisson-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(drawAll);
+setPreset('base');
+})();
+</script>
+</body>
+</html>

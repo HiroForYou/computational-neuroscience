@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wilson–Cowan: excitación, inhibición y oscilaciones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDEBEF; --surface:#FAF9FB; --ink:#25212B; --muted:#655F6E; --grid:#DAD6DF; --axis:#A59FAD;
+  --e:#C0392B; --i:#2470A8; --traj:#25212B; --nE:#C0392B; --nI:#2470A8; --stable:#2F8F5B; --unstable:#B8860B; --osc:#7D4CB0;
+  --focus:#7D4CB0;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141217; --surface:#1C1A20; --ink:#E6E2EB; --muted:#A39DAC; --grid:#2D2933; --axis:#575160;
+    --e:#F2857A; --i:#73B5EA; --traj:#E6E2EB; --nE:#F2857A; --nI:#73B5EA; --stable:#67CF96; --unstable:#E9BD4F; --osc:#C49BF0; --focus:#C49BF0;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141217; --surface:#1C1A20; --ink:#E6E2EB; --muted:#A39DAC; --grid:#2D2933; --axis:#575160;
+  --e:#F2857A; --i:#73B5EA; --traj:#E6E2EB; --nE:#F2857A; --nI:#73B5EA; --stable:#67CF96; --unstable:#E9BD4F; --osc:#C49BF0; --focus:#C49BF0;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Figtree,system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1280px;margin:0 auto;padding:28px 20px 60px}
+header{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px 40px;align-items:end;margin-bottom:26px}
+h1{font-family:Lora,Georgia,serif;font-weight:500;font-size:clamp(30px,4.2vw,50px);line-height:1.04;margin:0;letter-spacing:-.01em}
+h1 small{display:block;font-size:.5em;color:var(--muted);font-weight:400;margin-top:8px;letter-spacing:0}
+header p{margin:0;color:var(--muted);max-width:60ch;font-size:15.5px}
+h2{font-family:Lora,Georgia,serif;font-weight:500;font-size:22px;margin:0 0 4px}
+h3{font-size:14px;font-weight:600;margin:0 0 8px}
+.layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;align-items:start}
+aside{background:var(--surface);border-radius:14px;padding:18px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+.panel{background:var(--surface);border-radius:14px;padding:16px 16px 12px}
+.stack{display:grid;gap:14px}
+.row2{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px;align-items:start}
+.cap{color:var(--muted);font-size:13.5px;margin:2px 0 10px;max-width:72ch}
+canvas{display:block;width:100%;touch-action:none}
+#cp,#cb{cursor:crosshair}
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
+.presets button{font:inherit;font-size:13px;border:1px solid var(--grid);background:transparent;color:var(--ink);border-radius:999px;padding:5px 11px;cursor:pointer}
+.presets button:hover{border-color:var(--axis)}
+.presets button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+fieldset{border:0;padding:0;margin:0 0 16px}
+legend{font-weight:600;font-size:14px;margin-bottom:8px;padding:0}
+.ctl{margin-bottom:9px}
+.ctl label{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:2px}
+.ctl output{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--osc)}
+.btns{display:flex;gap:8px}
+.btn{font:inherit;font-size:14px;font-weight:500;flex:1;padding:9px 10px;border-radius:9px;border:0;cursor:pointer;background:var(--osc);color:var(--surface)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--grid)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted);margin-bottom:6px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.legend s{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:middle;margin-right:5px;text-decoration:none}
+.regime{font-family:Lora,Georgia,serif;font-size:22px;margin:2px 0 8px}
+table{border-collapse:collapse;font-size:13.5px;width:100%;font-variant-numeric:tabular-nums}
+td,th{padding:4px 6px;border-bottom:1px solid var(--grid);text-align:left}
+th{font-weight:500;color:var(--muted);font-size:12.5px}
+.theory{margin-top:34px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+.theory .panel{padding:20px 22px}
+.theory p,.theory li{font-family:Lora,Georgia,serif;font-size:16.5px;line-height:1.6;max-width:68ch}
+.theory ul{padding-left:20px;margin:8px 0}
+.eq{font-family:Lora,Georgia,serif;font-size:16.5px;background:var(--bg);border-radius:10px;padding:12px 14px;margin:10px 0;overflow-x:auto;white-space:nowrap;line-height:1.9}
+.note{font-size:13px;color:var(--muted)}
+.themebtn{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);font:inherit;font-size:13px;border:1px solid var(--grid);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 12px;cursor:pointer}
+@media (max-width:980px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  aside{position:static}
+  header,.theory,.row2{grid-template-columns:minmax(0,1fr)}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Wilson–Cowan<small>Dos poblaciones, excitación e inhibición</small></h1>
+  <p>En vez de seguir neuronas individuales, el modelo de Wilson y Cowan (1972) describe la actividad promedio de una población excitatoria E y una inhibitoria I. Con solo dos ecuaciones aparecen estados de reposo, actividad sostenida, biestabilidad y oscilaciones. Cambia la entrada y las conexiones, y haz clic en el plano de fase para elegir el estado inicial.</p>
+</header>
+
+<div class="layout">
+<aside>
+  <h3>Regímenes</h3>
+  <div class="presets" id="presets">
+    <button data-p="low">Actividad baja</button>
+    <button data-p="osc" aria-pressed="true">Oscilación</button>
+    <button data-p="high">Actividad alta</button>
+    <button data-p="bistable">Biestable</button>
+  </div>
+
+  <fieldset>
+    <legend>Entrada externa</legend>
+    <div class="ctl"><label for="IE"><span>I<sub>E</sub><sup>ext</sup></span> <output id="o-IE"></output></label><input id="IE" type="range" min="0" max="2" step="0.01"></div>
+    <div class="ctl"><label for="II"><span>I<sub>I</sub><sup>ext</sup></span> <output id="o-II"></output></label><input id="II" type="range" min="-1" max="1" step="0.01"></div>
+  </fieldset>
+  <fieldset>
+    <legend>Conexiones</legend>
+    <div class="ctl"><label for="wEE"><span>w<sub>EE</sub> (E→E)</span> <output id="o-wEE"></output></label><input id="wEE" type="range" min="0" max="14" step="0.1"></div>
+    <div class="ctl"><label for="wEI"><span>w<sub>EI</sub> (I→E)</span> <output id="o-wEI"></output></label><input id="wEI" type="range" min="0.5" max="14" step="0.1"></div>
+    <div class="ctl"><label for="wIE"><span>w<sub>IE</sub> (E→I)</span> <output id="o-wIE"></output></label><input id="wIE" type="range" min="0" max="16" step="0.1"></div>
+    <div class="ctl"><label for="wII"><span>w<sub>II</sub> (I→I)</span> <output id="o-wII"></output></label><input id="wII" type="range" min="0" max="14" step="0.1"></div>
+  </fieldset>
+  <fieldset>
+    <legend>Tiempo</legend>
+    <div class="ctl"><label for="tauI"><span>τ<sub>I</sub> / τ<sub>E</sub></span> <output id="o-tauI"></output></label><input id="tauI" type="range" min="0.25" max="5" step="0.05"></div>
+  </fieldset>
+
+  <div class="btns">
+    <button class="btn" id="play">Animar</button>
+    <button class="btn ghost" id="clear">Borrar trayectorias</button>
+  </div>
+</aside>
+
+<main class="stack">
+  <div class="row2">
+    <section class="panel">
+      <h2>Plano de fase E–I</h2>
+      <p class="cap">Las nullclines (dE/dt = 0, dI/dt = 0) se cruzan en los puntos fijos. Haz clic para lanzar una trayectoria desde ese estado.</p>
+      <div class="legend"><span><i style="background:var(--nE)"></i>dE/dt = 0</span><span><i style="background:var(--nI)"></i>dI/dt = 0</span><span><s style="background:var(--stable)"></s>estable</span><span><s style="border:2px solid var(--unstable)"></s>inestable</span><span><s style="background:var(--unstable);border-radius:2px"></s>silla</span></div>
+      <canvas id="cp" height="440" aria-label="Plano de fase de Wilson-Cowan"></canvas>
+    </section>
+    <div class="stack">
+      <section class="panel">
+        <h2>Estado</h2>
+        <div class="regime" id="regime">–</div>
+        <table><thead><tr><th>Punto fijo</th><th>E*</th><th>I*</th><th>λ</th><th>Tipo</th></tr></thead><tbody id="fps"></tbody></table>
+        <p class="note" id="period"></p>
+      </section>
+      <section class="panel">
+        <h2>Diagrama de bifurcación</h2>
+        <p class="cap">Puntos fijos de E (verde estable, ámbar inestable) y mínimo/máximo de la oscilación (violeta) al variar I<sub>E</sub>. Haz clic para elegir I<sub>E</sub>.</p>
+        <canvas id="cb" height="250" aria-label="Diagrama de bifurcación"></canvas>
+      </section>
+    </div>
+  </div>
+  <section class="panel">
+    <h2>Actividad en el tiempo</h2>
+    <p class="cap">E(t) e I(t) de la última trayectoria. La inhibición sigue a la excitación con retraso: es ese desfase el que sostiene la oscilación.</p>
+    <div class="legend"><span><i style="background:var(--e)"></i>E(t)</span><span><i style="background:var(--i)"></i>I(t)</span></div>
+    <canvas id="ct" height="200" aria-label="Actividad en el tiempo"></canvas>
+  </section>
+</main>
+</div>
+
+<section class="theory">
+  <div class="panel">
+    <h2>Las ecuaciones</h2>
+    <div class="eq">τ<sub>E</sub> dE/dt = −E + F<sub>E</sub>(w<sub>EE</sub>E − w<sub>EI</sub>I + I<sub>E</sub><sup>ext</sup>)</div>
+    <div class="eq">τ<sub>I</sub> dI/dt = −I + F<sub>I</sub>(w<sub>IE</sub>E − w<sub>II</sub>I + I<sub>I</sub><sup>ext</sup>)</div>
+    <p>F es una sigmoide desplazada para que F(0) = 0, con ganancia a y umbral θ:</p>
+    <div class="eq">F(x) = 1 / (1 + e<sup>−a(x−θ)</sup>) − 1 / (1 + e<sup>aθ</sup>)</div>
+    <p>Parámetros fijos: a<sub>E</sub> = 1,2, θ<sub>E</sub> = 2,8, a<sub>I</sub> = 1, θ<sub>I</sub> = 4, τ<sub>E</sub> = 1. Los regímenes usan los valores del tutorial W2D4 de Neuromatch Academy.</p>
+    <p>La estabilidad de cada punto fijo se obtiene con los autovalores del jacobiano J (ver el módulo de sistemas lineales): estable si ambos tienen parte real negativa; silla si det J &lt; 0.</p>
+    <p class="note">Integración con Runge–Kutta de cuarto orden, Δt = 0,05 τ<sub>E</sub>, 100 τ<sub>E</sub> de simulación.</p>
+  </div>
+  <div class="panel">
+    <h2>Qué observar</h2>
+    <ul>
+      <li><b>Oscilación por retroalimentación negativa.</b> E excita a I, I inhibe a E. Si la inhibición llega con suficiente retraso (τ<sub>I</sub> mayor), el punto fijo se vuelve un foco inestable y aparece un ciclo límite. Baja τ<sub>I</sub>/τ<sub>E</sub> en el régimen de oscilación y verás cómo desaparece.</li>
+      <li><b>Dos bifurcaciones.</b> En el diagrama, al subir I<sub>E</sub>: el estado bajo estable choca con una silla y desaparece (bifurcación silla-nodo, I<sub>E</sub> ≈ 0,72), y la actividad salta al ciclo límite (banda violeta). Cerca de I<sub>E</sub> ≈ 1 el punto fijo alto se vuelve estable al cruzar su traza por cero (bifurcación de Hopf) y la oscilación se apaga: actividad baja → oscilación → actividad alta.</li>
+      <li><b>Biestabilidad.</b> Con w<sub>EE</sub> fuerte hay dos estados estables separados por una silla. El estado final depende de dónde empiezas: una forma simple de memoria de trabajo.</li>
+      <li><b>Límites.</b> Es un modelo de tasas promedio: no hay spikes, ni ruido, ni estructura espacial. Sirve para entender ritmos (como los gamma, ligados a la interacción E–I) en su forma más simple.</li>
+    </ul>
+  </div>
+</section>
+
+<button class="themebtn" id="theme" aria-label="Cambiar tema">Tema</button>
+
+<script>
+(function(){
+"use strict";
+const AE=1.2,THE=2.8,AI=1.0,THI=4.0,DT=0.05,TMAX=100,LO=-0.05,HI=1.0;
+const OSC={wEE:6.4,wEI:4.8,wIE:6.0,wII:1.2,II:0,tauI:2};
+const BI={wEE:9,wEI:4,wIE:13,wII:11,II:0,tauI:2};
+const PRESETS={low:{...OSC,IE:0.4},osc:{...OSC,IE:0.8},high:{...OSC,IE:1.5},bistable:{...BI,IE:0}};
+const PRESET_INITS={low:[[0.32,0.15]],osc:[[0.32,0.15]],high:[[0.32,0.15]],bistable:[[0.32,0.15],[0.36,0.15],[0.9,0.1],[0.1,0.6]]};
+let P={...PRESETS.osc}, trajs=[], reveal=Infinity, playing=false, raf=0, bif=null, bifKey='';
+const $=id=>document.getElementById(id);
+const fmt=(v,d=2)=>(Math.round(v*10**d)/10**d).toLocaleString('es',{minimumFractionDigits:d,maximumFractionDigits:d});
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+
+// ---------- Modelo ----------
+const F=(x,a,th)=>1/(1+Math.exp(-a*(x-th)))-1/(1+Math.exp(a*th));
+const dF=(x,a,th)=>{const s=1/(1+Math.exp(-a*(x-th)));return a*s*(1-s);};
+const Finv=(y,a,th)=>th-Math.log(1/(y+1/(1+Math.exp(a*th)))-1)/a;
+const OFF_E=1/(1+Math.exp(AE*THE)), OFF_I=1/(1+Math.exp(AI*THI));
+function deriv(p,E,I){return [-E+F(p.wEE*E-p.wEI*I+p.IE,AE,THE), (-I+F(p.wIE*E-p.wII*I+p.II,AI,THI))/p.tauI];}
+function integrate(p,E0,I0,T=TMAX){
+  const n=Math.round(T/DT), ts=new Float32Array(n+1), Es=new Float32Array(n+1), Is=new Float32Array(n+1);let E=E0,I=I0;
+  for(let k=0;k<=n;k++){ts[k]=k*DT;Es[k]=E;Is[k]=I;
+    const k1=deriv(p,E,I),k2=deriv(p,E+DT/2*k1[0],I+DT/2*k1[1]),k3=deriv(p,E+DT/2*k2[0],I+DT/2*k2[1]),k4=deriv(p,E+DT*k3[0],I+DT*k3[1]);
+    E+=DT/6*(k1[0]+2*k2[0]+2*k3[0]+k4[0]);I+=DT/6*(k1[1]+2*k2[1]+2*k3[1]+k4[1]);}
+  return {E0,I0,ts,Es,Is};
+}
+function eNullI(p,E){return (p.wEE*E+p.IE-Finv(E,AE,THE))/p.wEI;}
+function iNullE(p,I){return (Finv(I,AI,THI)+p.wII*I-p.II)/p.wIE;}
+function fixedPoints(p,step=1e-4){
+  const h=E=>{const I=eNullI(p,E);return -I+F(p.wIE*E-p.wII*I+p.II,AI,THI);};
+  const out=[];let pe=null,pv=null;
+  for(let E=-OFF_E+1e-6;E<1-OFF_E-1e-6;E+=step){const v=h(E);
+    if(pv!==null&&isFinite(v)&&isFinite(pv)&&pv*v<=0){let a=pe,b=E;for(let k=0;k<50;k++){const m=(a+b)/2;if(h(a)*h(m)<=0)b=m;else a=m;}
+      const Ef=(a+b)/2,If=eNullI(p,Ef), xe=p.wEE*Ef-p.wEI*If+p.IE, xi=p.wIE*Ef-p.wII*If+p.II;
+      const J=[-1+p.wEE*dF(xe,AE,THE), -p.wEI*dF(xe,AE,THE), p.wIE*dF(xi,AI,THI)/p.tauI, (-1-p.wII*dF(xi,AI,THI))/p.tauI];
+      const tr=J[0]+J[3],det=J[0]*J[3]-J[1]*J[2],disc=tr*tr/4-det;
+      const lam=disc>=0?[tr/2+Math.sqrt(disc),tr/2-Math.sqrt(disc)]:[{re:tr/2,im:Math.sqrt(-disc)}];
+      const type=det<0?'saddle':tr<0?'stable':'unstable';
+      if(!out.some(q=>Math.abs(q.E-Ef)<1e-4))out.push({E:Ef,I:If,tr,det,disc,lam,type});}
+    pe=E;pv=v;}
+  return out;
+}
+function oscillation(tr){
+  const n=tr.Es.length, start=Math.floor(n*0.6);let mn=Infinity,mx=-Infinity;for(let k=start;k<n;k++){mn=Math.min(mn,tr.Es[k]);mx=Math.max(mx,tr.Es[k]);}
+  if(mx-mn<1e-3)return null;
+  const mid=(mn+mx)/2, ups=[];for(let k=start+1;k<n;k++)if(tr.Es[k-1]<mid&&tr.Es[k]>=mid)ups.push(tr.ts[k]);
+  const period=ups.length>1?(ups[ups.length-1]-ups[0])/(ups.length-1):NaN;
+  return {mn,mx,period};
+}
+
+// ---------- Gráficas ----------
+function prep(cv,square){
+  const dpr=window.devicePixelRatio||1, w=cv.clientWidth, h=square?Math.min(w,+cv.getAttribute('height')):+cv.getAttribute('height');
+  if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px';}
+  const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);return {c,w,h};
+}
+function ticks(a,b,n){const span=b-a, step0=span/n, mag=10**Math.floor(Math.log10(step0)), s=[1,2,5,10].map(f=>f*mag).find(f=>f>=step0);const out=[];for(let v=Math.ceil(a/s)*s;v<=b+1e-9;v+=s)out.push(+v.toFixed(6));return out;}
+function axes(g,xr,yr,pad,o={}){
+  const {c,w,h}=g;
+  const X=x=>pad.l+(x-xr[0])/(xr[1]-xr[0])*(w-pad.l-pad.r), Y=y=>h-pad.b-(y-yr[0])/(yr[1]-yr[0])*(h-pad.t-pad.b);
+  c.font='11px Figtree, system-ui, sans-serif';c.lineWidth=1;c.strokeStyle=css('--grid');c.fillStyle=css('--muted');
+  const xt=o.xt||ticks(xr[0],xr[1],5), yt=o.yt||ticks(yr[0],yr[1],5);
+  c.textAlign='center';c.textBaseline='top';xt.forEach(v=>{const x=Math.round(X(v))+.5;c.beginPath();c.moveTo(x,pad.t);c.lineTo(x,h-pad.b);c.stroke();c.fillText(fmt(v,v%1?1:0),x,h-pad.b+5);});
+  c.textAlign='right';c.textBaseline='middle';yt.forEach(v=>{const y=Math.round(Y(v))+.5;c.beginPath();c.moveTo(pad.l,y);c.lineTo(w-pad.r,y);c.stroke();c.fillText(fmt(v,v%1?1:0),pad.l-6,y);});
+  if(o.xl){c.textAlign='right';c.textBaseline='bottom';c.fillText(o.xl,w-pad.r-2,h-pad.b-3);}
+  if(o.yl){c.textAlign='left';c.textBaseline='top';c.fillText(o.yl,pad.l+4,pad.t+2);}
+  return {X,Y,pad,xr,yr};
+}
+function clip(g,F){const {c,w,h}=g;c.save();c.beginPath();c.rect(F.pad.l,F.pad.t,w-F.pad.l-F.pad.r,h-F.pad.t-F.pad.b);c.clip();}
+function poly(c,F,xs,ys,n){c.beginPath();let on=false;for(let i=0;i<n;i++){if(!isFinite(xs[i])||!isFinite(ys[i])){on=false;continue;}const x=F.X(xs[i]),y=F.Y(ys[i]);on?c.lineTo(x,y):c.moveTo(x,y);on=true;}c.stroke();}
+function marker(c,x,y,type){
+  c.lineWidth=2;
+  if(type==='stable'){c.fillStyle=css('--stable');c.strokeStyle=css('--surface');c.beginPath();c.arc(x,y,6,0,7);c.fill();c.stroke();}
+  else if(type==='saddle'){c.fillStyle=css('--unstable');c.strokeStyle=css('--surface');c.beginPath();c.rect(x-5.5,y-5.5,11,11);c.fill();c.stroke();}
+  else{c.fillStyle=css('--surface');c.strokeStyle=css('--unstable');c.beginPath();c.arc(x,y,5.5,0,7);c.fill();c.stroke();}
+}
+let phaseF=null,bifF=null,fps=[];
+function nVisible(){return isFinite(reveal)?reveal:Infinity;}
+
+function drawPhase(){
+  const g=prep($('cp'),true),c=g.c,F=axes(g,[LO,HI],[LO,HI],{l:34,r:10,t:8,b:22},{xl:'E',yl:'I'});phaseF=F;
+  clip(g,F);
+  const n=16, step=(HI-LO)/(n-1);let vmax=1e-9;const field=[];
+  for(let i=0;i<n;i++)for(let j=0;j<n;j++){const E=LO+i*step,I=LO+j*step,v=deriv(P,E,I),s=Math.hypot(v[0],v[1]);vmax=Math.max(vmax,s);field.push([E,I,v,s]);}
+  c.strokeStyle=css('--axis');c.fillStyle=css('--axis');
+  field.forEach(([E,I,v,s])=>{if(s<1e-9)return;const len=(F.X(step)-F.X(0))*0.42,ux=v[0]/s,uy=v[1]/s,px=F.X(E),py=F.Y(I),qx=px+ux*len,qy=py-uy*len;
+    c.globalAlpha=0.3+0.55*Math.sqrt(s/vmax);c.lineWidth=1.1;c.beginPath();c.moveTo(px-ux*len*0.2,py+uy*len*0.2);c.lineTo(qx,qy);c.stroke();
+    const ang=Math.atan2(-uy,ux);c.beginPath();c.moveTo(qx,qy);c.lineTo(qx-4*Math.cos(ang-0.45),qy-4*Math.sin(ang-0.45));c.lineTo(qx-4*Math.cos(ang+0.45),qy-4*Math.sin(ang+0.45));c.fill();});
+  c.globalAlpha=1;
+  const es=[],eis=[];for(let E=-OFF_E+1e-4;E<1-OFF_E-1e-4;E+=0.002){es.push(E);eis.push(eNullI(P,E));}
+  c.strokeStyle=css('--nE');c.lineWidth=2;poly(c,F,es,eis,es.length);
+  const is=[],ies=[];for(let I=-OFF_I+1e-4;I<1-OFF_I-1e-4;I+=0.002){is.push(I);ies.push(iNullE(P,I));}
+  c.strokeStyle=css('--nI');poly(c,F,ies,is,is.length);
+  const nv=nVisible();
+  trajs.forEach((tr,k)=>{const last=k===trajs.length-1, m=Math.min(nv,tr.Es.length);
+    c.strokeStyle=css('--traj');c.globalAlpha=last?0.95:0.45;c.lineWidth=last?1.8:1.3;poly(c,F,tr.Es,tr.Is,m);c.globalAlpha=1;
+    c.fillStyle=css('--surface');c.strokeStyle=css('--traj');c.lineWidth=1.6;c.beginPath();c.arc(F.X(tr.E0),F.Y(tr.I0),4,0,7);c.fill();c.stroke();
+    if(isFinite(nv)&&m>0){c.fillStyle=css('--osc');c.beginPath();c.arc(F.X(tr.Es[m-1]),F.Y(tr.Is[m-1]),5,0,7);c.fill();}});
+  c.restore();
+  fps.forEach(fp=>marker(c,F.X(fp.E),F.Y(fp.I),fp.type));
+}
+function drawTime(){
+  const g=prep($('ct')),c=g.c,tr=trajs[trajs.length-1];
+  const F=axes(g,[0,TMAX],[LO,HI],{l:36,r:10,t:8,b:22},{xl:'t / τE',xt:ticks(0,TMAX,10)});
+  if(!tr){c.fillStyle=css('--muted');c.textAlign='center';c.fillText('Haz clic en el plano de fase',g.w/2,g.h/2);return;}
+  clip(g,F);const m=Math.min(nVisible(),tr.Es.length);
+  c.lineWidth=1.9;c.strokeStyle=css('--e');poly(c,F,tr.ts,tr.Es,m);c.strokeStyle=css('--i');poly(c,F,tr.ts,tr.Is,m);c.restore();
+}
+function drawBif(){
+  const g=prep($('cb')),c=g.c,F=axes(g,[0,2],[LO,HI],{l:34,r:10,t:8,b:22},{xl:'I_E',yl:'E'});bifF=F;
+  if(!bif){c.fillStyle=css('--muted');c.textAlign='center';c.fillText('Calculando…',g.w/2,g.h/2);}
+  else bif.forEach(pt=>{
+    pt.fps.forEach(fp=>{const x=F.X(pt.IE),y=F.Y(fp.E);if(fp.type==='stable'){c.fillStyle=css('--stable');c.fillRect(x-1.6,y-1.6,3.2,3.2);}else{c.fillStyle=css('--unstable');c.fillRect(x-1.2,y-1.2,2.4,2.4);}});
+    pt.osc.forEach(o=>{c.fillStyle=css('--osc');[o.mn,o.mx].forEach(v=>{c.beginPath();c.arc(F.X(pt.IE),F.Y(v),2,0,7);c.fill();});});
+  });
+  const x=Math.round(F.X(P.IE))+.5;c.strokeStyle=css('--ink');c.globalAlpha=0.45;c.lineWidth=1;c.beginPath();c.moveTo(x,F.pad.t);c.lineTo(x,g.h-F.pad.b);c.stroke();c.globalAlpha=1;
+}
+function updateState(){
+  const tr=trajs[trajs.length-1], osc=tr?oscillation(tr):null, stable=fps.filter(f=>f.type==='stable').length;
+  let regime;
+  if(osc)regime='Oscilación (ciclo límite)';
+  else if(stable>=2)regime='Biestable: '+stable+' estados estables';
+  else if(stable===1)regime=fps.find(f=>f.type==='stable').E<0.3?'Punto fijo: actividad baja':'Punto fijo: actividad alta';
+  else regime='Sin punto fijo estable';
+  $('regime').textContent=regime;
+  const name={stable:'estable',unstable:'inestable',saddle:'silla'};
+  const lamTxt=fp=>fp.lam.length===1?fmt(fp.lam[0].re)+' ± '+fmt(fp.lam[0].im)+'i':fmt(fp.lam[0])+', '+fmt(fp.lam[1]);
+  $('fps').innerHTML=fps.map((fp,i)=>`<tr><td>${i+1}</td><td>${fmt(fp.E,3)}</td><td>${fmt(fp.I,3)}</td><td>${lamTxt(fp)}</td><td>${name[fp.type]}</td></tr>`).join('')||'<tr><td colspan="5">No se encontraron puntos fijos</td></tr>';
+  $('period').textContent=osc&&isFinite(osc.period)?'Período de la oscilación ≈ '+fmt(osc.period,1)+' τE; E oscila entre '+fmt(osc.mn)+' y '+fmt(osc.mx)+'.':'';
+}
+function drawAll(){drawPhase();drawTime();drawBif();updateState();}
+
+// ---------- Cálculos ----------
+let bifJob=0;
+function computeBif(){
+  const key=[P.wEE,P.wEI,P.wIE,P.wII,P.II,P.tauI].join('|');if(key===bifKey&&bif)return;bifKey=key;bif=null;
+  const job=++bifJob, pp={...P}, xs=[];for(let k=0;k<=80;k++)xs.push(k*0.025);
+  const res=[];let k=0;
+  (function step(){if(job!==bifJob)return;const t0=performance.now();
+    while(k<xs.length&&performance.now()-t0<20){const q={...pp,IE:xs[k]};const fpk=fixedPoints(q,5e-4);
+      const osc=[];if(fpk.some(f=>f.type==='unstable')){const o=oscillation(integrate(q,0.32,0.15,150));if(o)osc.push(o);}
+      res.push({IE:xs[k],fps:fpk,osc});k++;}
+    if(k<xs.length)setTimeout(step,0);else{bif=res;drawBif();}})();
+}
+function recompute(){fps=fixedPoints(P);trajs=trajs.map(t=>integrate(P,t.E0,t.I0));}
+
+// ---------- Interacción ----------
+const KEYS={IE:2,II:2,wEE:1,wEI:1,wIE:1,wII:1,tauI:2};
+function syncUI(){Object.entries(KEYS).forEach(([k,d])=>{$(k).value=P[k];$('o-'+k).textContent=fmt(P[k],d);});}
+function setPreset(name){
+  P={...PRESETS[name]};syncUI();
+  document.querySelectorAll('#presets button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.p===name));
+  trajs=PRESET_INITS[name].map(([E,I])=>integrate(P,E,I));if(playing)stop();fps=fixedPoints(P);drawAll();computeBif();
+}
+function clearPreset(){document.querySelectorAll('#presets button').forEach(b=>b.setAttribute('aria-pressed','false'));}
+document.querySelectorAll('#presets button').forEach(b=>b.addEventListener('click',()=>setPreset(b.dataset.p)));
+Object.entries(KEYS).forEach(([k,d])=>$(k).addEventListener('input',e=>{P[k]=+e.target.value;$('o-'+k).textContent=fmt(P[k],d);clearPreset();if(playing)stop();recompute();drawAll();computeBif();}));
+function toData(cv,F,e){const r=cv.getBoundingClientRect();
+  return [F.xr[0]+(e.clientX-r.left-F.pad.l)/(r.width-F.pad.l-F.pad.r)*(F.xr[1]-F.xr[0]), F.yr[0]+(r.height-F.pad.b-(e.clientY-r.top))/(r.height-F.pad.t-F.pad.b)*(F.yr[1]-F.yr[0])];}
+let dragging=false;
+$('cp').addEventListener('pointerdown',e=>{dragging=true;$('cp').setPointerCapture(e.pointerId);const [E,I]=toData($('cp'),phaseF,e);trajs.push(integrate(P,Math.max(LO,Math.min(HI,E)),Math.max(LO,Math.min(HI,I))));if(trajs.length>8)trajs.shift();if(playing)stop();drawAll();});
+$('cp').addEventListener('pointermove',e=>{if(!dragging)return;const [E,I]=toData($('cp'),phaseF,e);trajs[trajs.length-1]=integrate(P,Math.max(LO,Math.min(HI,E)),Math.max(LO,Math.min(HI,I)));drawAll();});
+['pointerup','pointercancel'].forEach(t=>$('cp').addEventListener(t,()=>{dragging=false;}));
+$('cb').addEventListener('pointerdown',e=>{const [x]=toData($('cb'),bifF,e);P.IE=Math.max(0,Math.min(2,Math.round(x*100)/100));syncUI();clearPreset();if(playing)stop();recompute();drawAll();});
+$('clear').addEventListener('click',()=>{trajs=[];if(playing)stop();drawAll();});
+function play(){
+  if(playing){stop();return;}
+  if(!trajs.length)trajs=[integrate(P,0.32,0.15)];
+  playing=true;$('play').textContent='Detener';reveal=1;
+  const total=trajs[0].Es.length,start=performance.now(),dur=6000,reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const tick=now=>{const fr=reduce?1:Math.min(1,(now-start)/dur);reveal=Math.max(2,Math.round(fr*total));drawPhase();drawTime();if(fr<1&&playing)raf=requestAnimationFrame(tick);else stop();};
+  raf=requestAnimationFrame(tick);
+}
+function stop(){playing=false;cancelAnimationFrame(raf);reveal=Infinity;$('play').textContent='Animar';drawAll();}
+$('play').addEventListener('click',play);
+let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(drawAll,80);});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',drawAll);
+$('theme').addEventListener('click',()=>{const r=document.documentElement;const dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+  r.dataset.theme=dark?'light':'dark';try{localStorage.setItem('wc-theme',r.dataset.theme);}catch(e){}drawAll();});
+try{const t=localStorage.getItem('wc-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(drawAll);
+setPreset('osc');
+})();
+</script>
+</body>
+</html>

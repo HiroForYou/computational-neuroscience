@@ -129,9 +129,9 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 
   <fieldset>
     <legend>Membrana</legend>
-    <div class="ctl"><label for="gNa">ḡ<sub>Na</sub> <output id="o-gNa"></output></label><input id="gNa" type="range" min="0" max="200" step="1"></div>
-    <div class="ctl"><label for="gK">ḡ<sub>K</sub> <output id="o-gK"></output></label><input id="gK" type="range" min="0" max="80" step="0.5"></div>
-    <div class="ctl"><label for="gL">g<sub>L</sub> <output id="o-gL"></output></label><input id="gL" type="range" min="0" max="2" step="0.05"></div>
+    <div class="ctl"><label for="gNa"><span>ḡ<sub>Na</sub></span> <output id="o-gNa"></output></label><input id="gNa" type="range" min="0" max="200" step="1"></div>
+    <div class="ctl"><label for="gK"><span>ḡ<sub>K</sub></span> <output id="o-gK"></output></label><input id="gK" type="range" min="0" max="80" step="0.5"></div>
+    <div class="ctl"><label for="gL"><span>g<sub>L</sub></span> <output id="o-gL"></output></label><input id="gL" type="range" min="0" max="2" step="0.05"></div>
     <div class="ctl"><label for="temp">Temperatura <output id="o-temp"></output></label><input id="temp" type="range" min="0" max="30" step="0.1"></div>
   </fieldset>
 
@@ -344,7 +344,7 @@ function frame(g,xr,yr,o={}){
   (o.yt||[]).forEach(v=>{const y=Math.round(Y(v))+.5;c.beginPath();c.moveTo(pad.l,y);c.lineTo(w-pad.r,y);c.stroke();c.textAlign='right';c.fillText(o.yf?o.yf(v):v,pad.l-6,y);});
   if(o.xt!==false){const xt=o.xt||ticks(xr[0],xr[1],w>500?10:5);c.textAlign='center';c.textBaseline='top';
     xt.forEach(v=>{c.fillText(fmt(v,v%1?1:0),X(v),h-pad.b+5);});c.textBaseline='middle';}
-  if(o.xl){c.textAlign='right';c.textBaseline='top';c.fillText(o.xl,w-pad.r,h-pad.b+5+ (o.xlo||0));c.textBaseline='middle';}
+  if(o.xl){c.textAlign='right';c.textBaseline='bottom';c.fillText(o.xl,w-pad.r,h-pad.b-3);c.textBaseline='middle';}
   if(o.yl){c.save();c.translate(10,(h-pad.b+pad.t)/2);c.rotate(-Math.PI/2);c.textAlign='center';c.fillText(o.yl,0,0);c.restore();}
   return {X,Y,pad};
 }

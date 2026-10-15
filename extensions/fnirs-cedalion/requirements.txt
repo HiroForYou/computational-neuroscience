@@ -1,0 +1,6 @@
+# Isolated environment for the fNIRS/Cedalion extension (Python >= 3.11).
+# Kept separate from the main project because Cedalion pins numpy 2.2 and matplotlib 3.10.
+cedalion @ git+https://github.com/ibs-lab/cedalion.git@v26.5.1
+ipykernel>=6
+nbclient>=0.10
+nbformat>=5.9
