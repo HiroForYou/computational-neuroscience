@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hodgkin–Huxley: la neurona como sistema dinámico</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E8EDF0; --surface:#F7F9FA; --ink:#1B2A3A; --muted:#5A6A79; --grid:#D2DBE1; --axis:#9AA8B4;
+  --vm:#2B3A8C; --na:#D47324; --k:#1D8585; --leak:#8A8F98; --stim:#B0336B; --h:#8E52B0;
+  --focus:#2B3A8C;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10171D; --surface:#172129; --ink:#DCE6EC; --muted:#93A4B2; --grid:#24313B; --axis:#4E5F6C;
+    --vm:#A4B0FF; --na:#F0A14F; --k:#43C3B9; --leak:#8C949C; --stim:#E772A8; --h:#C995E6; --focus:#A4B0FF;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10171D; --surface:#172129; --ink:#DCE6EC; --muted:#93A4B2; --grid:#24313B; --axis:#4E5F6C;
+  --vm:#A4B0FF; --na:#F0A14F; --k:#43C3B9; --leak:#8C949C; --stim:#E772A8; --h:#C995E6; --focus:#A4B0FF;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1280px;margin:0 auto;padding:28px 20px 60px}
+header{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px 40px;align-items:end;margin-bottom:26px}
+h1{font-family:Newsreader,Georgia,serif;font-weight:500;font-size:clamp(30px,4.2vw,50px);line-height:1.04;margin:0;letter-spacing:-.01em}
+h1 small{display:block;font-size:.5em;color:var(--muted);font-weight:400;margin-top:8px;letter-spacing:0}
+header p{margin:0;color:var(--muted);max-width:60ch;font-size:15.5px}
+h2{font-family:Newsreader,Georgia,serif;font-weight:500;font-size:22px;margin:0 0 4px}
+h3{font-size:14px;font-weight:600;margin:0 0 8px}
+.layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;align-items:start}
+aside{background:var(--surface);border-radius:14px;padding:18px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+.panel{background:var(--surface);border-radius:14px;padding:16px 16px 12px}
+.stack{display:grid;gap:14px}
+.row2{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px}
+.cap{color:var(--muted);font-size:13.5px;margin:2px 0 10px;max-width:72ch}
+canvas{display:block;width:100%;touch-action:pan-y;cursor:crosshair}
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
+.presets button{font:inherit;font-size:13px;border:1px solid var(--grid);background:transparent;color:var(--ink);border-radius:999px;padding:5px 11px;cursor:pointer}
+.presets button:hover{border-color:var(--axis)}
+.presets button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+fieldset{border:0;padding:0;margin:0 0 16px}
+legend{font-weight:600;font-size:14px;margin-bottom:8px;padding:0}
+.ctl{margin-bottom:10px}
+.ctl label{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:2px}
+.ctl output{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--vm)}
+select{width:100%;font:inherit;font-size:14px;padding:6px 8px;border-radius:8px;border:1px solid var(--grid);background:var(--bg);color:var(--ink);margin-bottom:10px}
+.btns{display:flex;gap:8px}
+.btn{font:inherit;font-size:14px;font-weight:500;flex:1;padding:9px 10px;border-radius:9px;border:0;cursor:pointer;background:var(--vm);color:var(--surface)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--grid)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted);margin-bottom:6px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.toggle{display:inline-flex;border:1px solid var(--grid);border-radius:8px;overflow:hidden;margin-left:auto}
+.toggle button{font:inherit;font-size:12.5px;border:0;background:transparent;color:var(--muted);padding:4px 10px;cursor:pointer}
+.toggle button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.phead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.readout{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0 14px}
+.readout div{font-size:12.5px;color:var(--muted)}
+.readout b{display:block;font-size:19px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
+.chan{display:grid;grid-template-columns:62px minmax(0,1fr) 64px;align-items:center;gap:10px;margin:8px 0}
+.chan .name{font-weight:600;font-size:14px}
+.gates{display:flex;gap:5px}
+.gate{flex:1;height:34px;border-radius:6px;background:var(--bg);position:relative;overflow:hidden}
+.gate span{position:absolute;left:0;right:0;bottom:0;background:var(--c);opacity:.85}
+.gate em{position:absolute;inset:0;display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:600;color:var(--ink);mix-blend-mode:normal}
+.popen{text-align:right;font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted)}
+.popen b{display:block;color:var(--ink);font-size:16px;font-weight:500}
+.theory{margin-top:34px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+.theory .panel{padding:20px 22px}
+.theory p,.theory li{font-family:Newsreader,Georgia,serif;font-size:17px;line-height:1.6;max-width:68ch}
+.theory ul{padding-left:20px;margin:8px 0}
+.eq{font-family:Newsreader,Georgia,serif;font-size:17px;background:var(--bg);border-radius:10px;padding:12px 14px;margin:10px 0;overflow-x:auto;white-space:nowrap;line-height:1.9}
+.eq .na{color:var(--na)} .eq .k{color:var(--k)} .eq .l{color:var(--leak)}
+.note{font-size:13px;color:var(--muted)}
+.themebtn{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);font:inherit;font-size:13px;border:1px solid var(--grid);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 12px;cursor:pointer}
+@media (max-width:980px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  aside{position:static}
+  header,.theory,.row2{grid-template-columns:minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Hodgkin–Huxley<small>La neurona como sistema dinámico de cuatro variables</small></h1>
+  <p>En 1952 Hodgkin y Huxley describieron el potencial de acción del axón gigante del calamar con cuatro ecuaciones diferenciales: el voltaje de membrana y tres compuertas iónicas. Elige un experimento, mueve los parámetros y pasa el cursor por las gráficas para ver el estado de los canales en cada instante.</p>
+</header>
+
+<div class="layout">
+<aside>
+  <h3>Experimentos</h3>
+  <div class="presets" id="presets">
+    <button data-p="sub">Estímulo subumbral</button>
+    <button data-p="ap" aria-pressed="true">Potencial de acción</button>
+    <button data-p="train">Tren de disparos</button>
+    <button data-p="refr">Periodo refractario</button>
+    <button data-p="anode">Rebote anódico</button>
+    <button data-p="block">Bloqueo por despolarización</button>
+    <button data-p="ttx">Bloqueo de Na⁺ (TTX)</button>
+    <button data-p="lowk">Pocos canales de K⁺</button>
+  </div>
+
+  <fieldset>
+    <legend>Estímulo</legend>
+    <select id="type" aria-label="Tipo de estímulo">
+      <option value="pulse">Pulso único</option>
+      <option value="double">Dos pulsos</option>
+      <option value="step">Escalón sostenido</option>
+    </select>
+    <div class="ctl"><label for="amp">Amplitud <output id="o-amp"></output></label><input id="amp" type="range" min="-30" max="160" step="0.5"></div>
+    <div class="ctl" id="c-dur"><label for="dur">Duración <output id="o-dur"></output></label><input id="dur" type="range" min="0.2" max="20" step="0.1"></div>
+    <div class="ctl" id="c-isi"><label for="isi">Intervalo entre pulsos <output id="o-isi"></output></label><input id="isi" type="range" min="2" max="30" step="0.5"></div>
+    <div class="ctl"><label for="tmax">Tiempo simulado <output id="o-tmax"></output></label><input id="tmax" type="range" min="20" max="200" step="5"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Membrana</legend>
+    <div class="ctl"><label for="gNa">ḡ<sub>Na</sub> <output id="o-gNa"></output></label><input id="gNa" type="range" min="0" max="200" step="1"></div>
+    <div class="ctl"><label for="gK">ḡ<sub>K</sub> <output id="o-gK"></output></label><input id="gK" type="range" min="0" max="80" step="0.5"></div>
+    <div class="ctl"><label for="gL">g<sub>L</sub> <output id="o-gL"></output></label><input id="gL" type="range" min="0" max="2" step="0.05"></div>
+    <div class="ctl"><label for="temp">Temperatura <output id="o-temp"></output></label><input id="temp" type="range" min="0" max="30" step="0.1"></div>
+  </fieldset>
+
+  <div class="btns">
+    <button class="btn" id="play">Reproducir</button>
+    <button class="btn ghost" id="reset">Valores originales</button>
+  </div>
+</aside>
+
+<main class="stack">
+  <section class="panel">
+    <h2>Potencial de membrana</h2>
+    <p class="cap" id="cap-v">La línea gris marca el reposo (−65 mV); las líneas punteadas, los potenciales de inversión del Na⁺ (+50 mV) y del K⁺ (−77 mV), entre los que el voltaje queda atrapado.</p>
+    <canvas id="cv" height="250" aria-label="Voltaje de membrana en el tiempo"></canvas>
+    <canvas id="cs" height="64" aria-label="Corriente de estímulo"></canvas>
+  </section>
+
+  <section class="panel">
+    <div class="phead"><h2>Compuertas</h2>
+      <div class="legend"><span><i style="background:var(--na)"></i>m, activación de Na⁺</span><span><i style="background:var(--h)"></i>h, inactivación de Na⁺</span><span><i style="background:var(--k)"></i>n, activación de K⁺</span></div>
+    </div>
+    <p class="cap">m es rápida y dispara la subida; h y n son lentas y la terminan. Esa diferencia de tiempos es lo que crea el pico.</p>
+    <canvas id="cg" height="160" aria-label="Variables de compuerta"></canvas>
+  </section>
+
+  <section class="panel">
+    <div class="phead"><h2 id="t-cur">Corrientes iónicas</h2>
+      <div class="toggle" role="group" aria-label="Mostrar"><button id="b-cur" aria-pressed="true">Corrientes</button><button id="b-cond" aria-pressed="false">Conductancias</button></div>
+    </div>
+    <div class="legend" id="leg-cur"><span><i style="background:var(--na)"></i>Na⁺</span><span><i style="background:var(--k)"></i>K⁺</span><span id="leg-l"><i style="background:var(--leak)"></i>Fuga</span></div>
+    <canvas id="ci" height="170" aria-label="Corrientes o conductancias iónicas"></canvas>
+  </section>
+
+  <div class="row2">
+    <section class="panel">
+      <h2>Plano de fase V–n</h2>
+      <p class="cap">La trayectoria real proyectada sobre (V, n). Las curvas son las nulclinas del modelo reducido de Rinzel (m = m<sub>∞</sub>(V), h ≈ 0,89 − 1,1n) con la corriente del instante elegido. Donde se cruzan está el equilibrio; el potencial de acción es un gran rodeo alrededor de él.</p>
+      <div class="legend"><span><i style="background:var(--vm)"></i>trayectoria</span><span><i style="background:var(--stim)"></i>nulclina de V</span><span><i style="background:var(--k)"></i>nulclina de n</span></div>
+      <canvas id="cp" height="320" aria-label="Plano de fase"></canvas>
+    </section>
+    <div class="stack">
+      <section class="panel">
+        <h2>Estado de los canales</h2>
+        <p class="cap" id="cap-t">En t = 0 ms. Pasa el cursor por cualquier gráfica.</p>
+        <div class="readout">
+          <div>Voltaje<b id="r-v">–</b></div>
+          <div>I<sub>Na</sub> (µA/cm²)<b id="r-ina">–</b></div>
+          <div>I<sub>K</sub> (µA/cm²)<b id="r-ik">–</b></div>
+        </div>
+        <div class="chan"><div class="name" style="color:var(--na)">Na⁺</div>
+          <div class="gates"><div class="gate" style="--c:var(--na)"><span id="gm1"></span><em>m</em></div><div class="gate" style="--c:var(--na)"><span id="gm2"></span><em>m</em></div><div class="gate" style="--c:var(--na)"><span id="gm3"></span><em>m</em></div><div class="gate" style="--c:var(--h)"><span id="gh"></span><em>h</em></div></div>
+          <div class="popen">abierto<b id="p-na">–</b></div></div>
+        <div class="chan"><div class="name" style="color:var(--k)">K⁺</div>
+          <div class="gates"><div class="gate" style="--c:var(--k)"><span id="gn1"></span><em>n</em></div><div class="gate" style="--c:var(--k)"><span id="gn2"></span><em>n</em></div><div class="gate" style="--c:var(--k)"><span id="gn3"></span><em>n</em></div><div class="gate" style="--c:var(--k)"><span id="gn4"></span><em>n</em></div></div>
+          <div class="popen">abierto<b id="p-k">–</b></div></div>
+        <p class="note">Cada canal necesita todas sus compuertas abiertas: P(Na) = m³h, P(K) = n⁴.</p>
+      </section>
+      <section class="panel">
+        <h2>Curva frecuencia–corriente</h2>
+        <p class="cap" id="cap-fi">Frecuencia de disparo con un escalón sostenido de corriente. El punto marca la amplitud actual.</p>
+        <canvas id="cf" height="180" aria-label="Curva frecuencia corriente"></canvas>
+      </section>
+    </div>
+  </div>
+</main>
+</div>
+
+<section class="theory">
+  <div class="panel">
+    <h2>Las ecuaciones</h2>
+    <p>La membrana se comporta como un condensador en paralelo con tres conductancias. La corriente que entra carga el condensador:</p>
+    <div class="eq">C<sub>m</sub> dV/dt = I<sub>ext</sub> − <span class="na">ḡ<sub>Na</sub> m³h (V − E<sub>Na</sub>)</span> − <span class="k">ḡ<sub>K</sub> n⁴ (V − E<sub>K</sub>)</span> − <span class="l">g<sub>L</sub> (V − E<sub>L</sub>)</span></div>
+    <p>Cada compuerta x ∈ {m, h, n} se abre y cierra con tasas que dependen del voltaje:</p>
+    <div class="eq">dx/dt = φ(T) [ α<sub>x</sub>(V)(1 − x) − β<sub>x</sub>(V) x ] &nbsp;=&nbsp; (x<sub>∞</sub>(V) − x) / τ<sub>x</sub>(V)</div>
+    <p>con φ(T) = 3<sup>(T − 6,3)/10</sup>. Parámetros: C<sub>m</sub> = 1 µF/cm², ḡ<sub>Na</sub> = 120, ḡ<sub>K</sub> = 36, g<sub>L</sub> = 0,3 mS/cm², E<sub>Na</sub> = 50, E<sub>K</sub> = −77, E<sub>L</sub> = −54,4 mV. Se integra con Runge–Kutta de cuarto orden y paso de 0,01 ms.</p>
+    <p class="note">Convención moderna: el reposo está en −65 mV y la corriente positiva es entrante (despolarizante).</p>
+  </div>
+  <div class="panel">
+    <h2>Lo que muestra como sistema dinámico</h2>
+    <ul>
+      <li><b>Umbral.</b> No hay un voltaje fijo de disparo: pequeñas diferencias en el estímulo separan trayectorias que vuelven al reposo de las que dan la vuelta completa. Prueba amplitudes entre 6 y 7 µA/cm² con un pulso de 1 ms.</li>
+      <li><b>Refractariedad.</b> Tras un pico, h queda baja y n alta: el sistema necesita tiempo para regresar a la zona excitable del plano de fase.</li>
+      <li><b>Rebote anódico.</b> Una hiperpolarización larga abre las compuertas h y cierra n; al soltarla, el equilibrio queda momentáneamente excitable y la neurona dispara sin estímulo positivo.</li>
+      <li><b>Bifurcación.</b> Al subir la corriente sostenida, el reposo pierde estabilidad y aparece un ciclo límite: la frecuencia salta de cero a unos 50 Hz en vez de crecer desde cero (excitabilidad de tipo II, ligada a una bifurcación de Hopf). Con corrientes muy altas el ciclo desaparece y la membrana queda bloqueada en un voltaje despolarizado.</li>
+      <li><b>Temperatura.</b> φ(T) acelera todas las compuertas: los picos se vuelven más breves y, si la temperatura sube demasiado, la h y la n reaccionan tan rápido que el pico ya no llega a formarse.</li>
+    </ul>
+  </div>
+</section>
+
+<button class="themebtn" id="theme" aria-label="Cambiar tema">Tema</button>
+
+<script>
+(function(){
+"use strict";
+// ---------- Modelo ----------
+const ENa=50, EK=-77, EL=-54.387, DT=0.01, REC=5; // registra cada 0,05 ms
+function vtrap(x,y){return Math.abs(x/y)<1e-6 ? y*(1-x/y/2) : x/(Math.exp(x/y)-1);}
+function rates(V,phi){
+  return [
+    phi*0.1*vtrap(-(V+40),10), phi*4*Math.exp(-(V+65)/18),        // am, bm
+    phi*0.07*Math.exp(-(V+65)/20), phi/(1+Math.exp(-(V+35)/10)),   // ah, bh
+    phi*0.01*vtrap(-(V+55),10), phi*0.125*Math.exp(-(V+65)/80)     // an, bn
+  ];
+}
+function xinf(V){const r=rates(V,1);return [r[0]/(r[0]+r[1]), r[2]/(r[2]+r[3]), r[4]/(r[4]+r[5])];}
+function stimFn(p){
+  const on=(t,a,b)=>t>=a&&t<b;
+  if(p.type==='pulse') return t=>on(t,p.t0,p.t0+p.dur)?p.amp:0;
+  if(p.type==='double') return t=>(on(t,p.t0,p.t0+p.dur)||on(t,p.t0+p.isi,p.t0+p.isi+p.dur))?p.amp:0;
+  return t=>t>=p.t0?p.amp:0;
+}
+function deriv(V,m,h,n,I,p,phi,out){
+  const r=rates(V,phi);
+  out[0]=I-p.gNa*m*m*m*h*(V-ENa)-p.gK*n*n*n*n*(V-EK)-p.gL*(V-EL);
+  out[1]=r[0]*(1-m)-r[1]*m; out[2]=r[2]*(1-h)-r[3]*h; out[3]=r[4]*(1-n)-r[5]*n;
+}
+function rk4(y,t,dt,I1,I2,p,phi,k){
+  const [k1,k2,k3,k4]=k;
+  deriv(y[0],y[1],y[2],y[3],I1,p,phi,k1);
+  deriv(y[0]+dt/2*k1[0],y[1]+dt/2*k1[1],y[2]+dt/2*k1[2],y[3]+dt/2*k1[3],I2,p,phi,k2);
+  deriv(y[0]+dt/2*k2[0],y[1]+dt/2*k2[1],y[2]+dt/2*k2[2],y[3]+dt/2*k2[3],I2,p,phi,k3);
+  deriv(y[0]+dt*k3[0],y[1]+dt*k3[1],y[2]+dt*k3[2],y[3]+dt*k3[3],I2,p,phi,k4);
+  for(let i=0;i<4;i++) y[i]+=dt/6*(k1[i]+2*k2[i]+2*k3[i]+k4[i]);
+}
+const K=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
+function initialState(p,phi){
+  const s=xinf(-65); const y=[-65,s[0],s[1],s[2]];
+  // pre-equilibrio de 150 ms sin estímulo (relevante si cambian las conductancias)
+  for(let i=0;i<6000;i++) rk4(y,0,0.025,0,0,p,phi,K);
+  return y;
+}
+function simulate(p){
+  const phi=Math.pow(3,(p.temp-6.3)/10), I=stimFn(p);
+  const y=initialState(p,phi);
+  const N=Math.round(p.tmax/DT), M=Math.floor(N/REC)+1;
+  const o={t:new Float32Array(M),V:new Float32Array(M),m:new Float32Array(M),h:new Float32Array(M),n:new Float32Array(M),I:new Float32Array(M),n_:M};
+  let j=0;
+  for(let i=0;i<=N;i++){
+    const t=i*DT;
+    if(i%REC===0&&j<M){o.t[j]=t;o.V[j]=y[0];o.m[j]=y[1];o.h[j]=y[2];o.n[j]=y[3];o.I[j]=I(t);j++;}
+    rk4(y,t,DT,I(t),I(t+DT/2),p,phi,K);
+  }
+  o.gNa=new Float32Array(M);o.gK=new Float32Array(M);o.INa=new Float32Array(M);o.IK=new Float32Array(M);o.IL=new Float32Array(M);
+  for(let i=0;i<M;i++){
+    const m=o.m[i],h=o.h[i],n=o.n[i],V=o.V[i];
+    o.gNa[i]=p.gNa*m*m*m*h; o.gK[i]=p.gK*n*n*n*n;
+    // signo: corriente entrante negativa, como en los registros clásicos
+    o.INa[i]=o.gNa[i]*(V-ENa); o.IK[i]=o.gK[i]*(V-EK); o.IL[i]=p.gL*(V-EL);
+  }
+  return o;
+}
+function firingRate(p,amp){
+  const phi=Math.pow(3,(p.temp-6.3)/10), dt=0.025;
+  const y=initialState(p,phi); let prev=y[0], count=0, t=0;
+  const T1=100,T2=400;
+  while(t<T2){ rk4(y,t,dt,amp,amp,p,phi,K); t+=dt; if(prev<-10&&y[0]>=-10&&t>T1) count++; prev=y[0]; }
+  return count/((T2-T1)/1000);
+}
+
+// ---------- Estado ----------
+const DEF={type:'pulse',amp:10,dur:1,isi:9,tmax:60,t0:5,gNa:120,gK:36,gL:0.3,temp:6.3};
+const PRESETS={
+  sub:{type:'pulse',amp:5,dur:1,tmax:40},
+  ap:{type:'pulse',amp:10,dur:1,tmax:40},
+  train:{type:'step',amp:10,tmax:120},
+  refr:{type:'double',amp:20,dur:1,isi:9,tmax:50},
+  anode:{type:'pulse',amp:-10,dur:15,tmax:50},
+  block:{type:'step',amp:120,tmax:80},
+  ttx:{type:'pulse',amp:20,dur:1,tmax:40,gNa:0},
+  lowk:{type:'pulse',amp:0,dur:1,tmax:100,gK:12}
+};
+const CAPS={
+  sub:'El pulso desplaza el voltaje unos milivoltios y la membrana vuelve sola al reposo: el estímulo no alcanzó a activar suficientes canales de Na⁺.',
+  ap:'Un pulso de 1 ms basta para disparar el ciclo completo: subida rápida por Na⁺, caída por K⁺ y una hiperpolarización posterior.',
+  train:'Con corriente sostenida el reposo deja de ser estable y la neurona dispara de forma periódica: un ciclo límite.',
+  refr:'El segundo pulso llega mientras h sigue baja. Sube el intervalo a ~12 ms y el segundo pico reaparece.',
+  anode:'Una corriente negativa, al terminar, provoca un disparo. La hiperpolarización “recargó” h y redujo n.',
+  block:'Con corriente muy alta tras el primer pico las oscilaciones se amortiguan: el sistema cae en un equilibrio estable despolarizado.',
+  ttx:'Sin canales de Na⁺ no hay retroalimentación positiva: solo queda la respuesta pasiva de la membrana.',
+  lowk:'Con pocos canales de K⁺ el reposo se vuelve inestable y la neurona dispara sin ningún estímulo.'
+};
+let P={...DEF,...PRESETS.ap}, sim=null, cursor=0, reveal=Infinity, playing=false, showCond=false, fi=null, fiKey='';
+const $=id=>document.getElementById(id);
+const fmt=(v,d=1)=>(Math.round(v*10**d)/10**d).toLocaleString('es',{minimumFractionDigits:d,maximumFractionDigits:d});
+const units={amp:v=>fmt(v)+' µA/cm²',dur:v=>fmt(v)+' ms',isi:v=>fmt(v)+' ms',tmax:v=>fmt(v,0)+' ms',gNa:v=>fmt(v,0)+' mS/cm²',gK:v=>fmt(v)+' mS/cm²',gL:v=>fmt(v,2)+' mS/cm²',temp:v=>fmt(v)+' °C'};
+const KEYS=Object.keys(units);
+
+function syncUI(){
+  $('type').value=P.type;
+  KEYS.forEach(k=>{$(k).value=P[k];$('o-'+k).textContent=units[k](P[k]);});
+  $('c-dur').style.display=P.type==='step'?'none':'';
+  $('c-isi').style.display=P.type==='double'?'':'none';
+}
+function css(name){return getComputedStyle(document.documentElement).getPropertyValue(name).trim();}
+
+// ---------- Gráficas ----------
+function prep(cv){
+  const dpr=window.devicePixelRatio||1, w=cv.clientWidth, h=+cv.getAttribute('height');
+  if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px';}
+  const c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,w,h);
+  return {c,w,h};
+}
+const PAD={l:46,r:12,t:8,b:22};
+function frame(g,xr,yr,o={}){
+  const {c,w,h}=g, pad={...PAD,...(o.pad||{})};
+  const X=x=>pad.l+(x-xr[0])/(xr[1]-xr[0])*(w-pad.l-pad.r);
+  const Y=y=>h-pad.b-(y-yr[0])/(yr[1]-yr[0])*(h-pad.t-pad.b);
+  c.font='11px "Instrument Sans", system-ui, sans-serif'; c.textBaseline='middle';
+  c.strokeStyle=css('--grid'); c.fillStyle=css('--muted'); c.lineWidth=1;
+  (o.yt||[]).forEach(v=>{const y=Math.round(Y(v))+.5;c.beginPath();c.moveTo(pad.l,y);c.lineTo(w-pad.r,y);c.stroke();c.textAlign='right';c.fillText(o.yf?o.yf(v):v,pad.l-6,y);});
+  if(o.xt!==false){const xt=o.xt||ticks(xr[0],xr[1],w>500?10:5);c.textAlign='center';c.textBaseline='top';
+    xt.forEach(v=>{c.fillText(fmt(v,v%1?1:0),X(v),h-pad.b+5);});c.textBaseline='middle';}
+  if(o.xl){c.textAlign='right';c.textBaseline='top';c.fillText(o.xl,w-pad.r,h-pad.b+5+ (o.xlo||0));c.textBaseline='middle';}
+  if(o.yl){c.save();c.translate(10,(h-pad.b+pad.t)/2);c.rotate(-Math.PI/2);c.textAlign='center';c.fillText(o.yl,0,0);c.restore();}
+  return {X,Y,pad};
+}
+function ticks(a,b,n){const span=b-a, step0=span/n, mag=10**Math.floor(Math.log10(step0)), s=[1,2,5,10].map(f=>f*mag).find(f=>f>=step0);const out=[];for(let v=Math.ceil(a/s)*s;v<=b+1e-9;v+=s)out.push(+v.toFixed(6));return out;}
+function line(g,f,xs,ys,n,color,lw=1.8,dash){
+  const {c}=g;c.strokeStyle=color;c.lineWidth=lw;c.setLineDash(dash||[]);c.lineJoin='round';c.beginPath();
+  for(let i=0;i<n;i++){const x=f.X(xs[i]),y=f.Y(ys[i]);i?c.lineTo(x,y):c.moveTo(x,y);}c.stroke();c.setLineDash([]);
+}
+function hline(g,f,y,color,dash){const {c,w}=g;c.strokeStyle=color;c.lineWidth=1;c.setLineDash(dash||[]);c.beginPath();c.moveTo(f.pad.l,f.Y(y)+.5);c.lineTo(w-f.pad.r,f.Y(y)+.5);c.stroke();c.setLineDash([]);}
+function vcursor(g,f,t){const {c,h}=g;const x=Math.round(f.X(t))+.5;c.strokeStyle=css('--ink');c.globalAlpha=.35;c.lineWidth=1;c.beginPath();c.moveTo(x,f.pad.t);c.lineTo(x,h-f.pad.b);c.stroke();c.globalAlpha=1;}
+
+function nVisible(){return Math.min(sim.n_, isFinite(reveal)?reveal+1:sim.n_);}
+
+function drawV(){
+  const g=prep($('cv')), xr=[0,P.tmax];
+  let lo=-90,hi=60; for(let i=0;i<sim.n_;i++){lo=Math.min(lo,sim.V[i]-5);hi=Math.max(hi,sim.V[i]+5);}
+  lo=Math.floor(lo/10)*10;hi=Math.ceil(hi/10)*10;
+  const f=frame(g,xr,[lo,hi],{yt:ticks(lo,hi,6),yl:'mV',xl:'ms'});
+  hline(g,f,-65,css('--axis'));hline(g,f,ENa,css('--na'),[3,4]);hline(g,f,EK,css('--k'),[3,4]);
+  const c=g.c;c.font='11px "Instrument Sans", system-ui';c.textAlign='left';c.fillStyle=css('--na');c.fillText('E_Na',f.pad.l+4,f.Y(ENa)-8);c.fillStyle=css('--k');c.fillText('E_K',f.pad.l+4,f.Y(EK)+9);
+  line(g,f,sim.t,sim.V,nVisible(),css('--vm'),2.2);
+  vcursor(g,f,sim.t[cursor]);
+  c.fillStyle=css('--vm');c.beginPath();c.arc(f.X(sim.t[cursor]),f.Y(sim.V[cursor]),4,0,7);c.fill();
+}
+function drawS(){
+  const g=prep($('cs'));let lo=0,hi=0;for(let i=0;i<sim.n_;i++){lo=Math.min(lo,sim.I[i]);hi=Math.max(hi,sim.I[i]);}
+  if(hi-lo<1){hi+=1;}const padr=(hi-lo)*.15;
+  const f=frame(g,[0,P.tmax],[lo-padr,hi+padr],{yt:lo<0?[lo,0]:[0,hi],yf:v=>fmt(v,0),xt:false,pad:{b:6,t:6}});
+  const c=g.c;c.fillStyle=css('--stim');c.globalAlpha=.18;c.beginPath();c.moveTo(f.X(0),f.Y(0));
+  for(let i=0;i<sim.n_;i++)c.lineTo(f.X(sim.t[i]),f.Y(sim.I[i]));c.lineTo(f.X(P.tmax),f.Y(0));c.fill();c.globalAlpha=1;
+  line(g,f,sim.t,sim.I,sim.n_,css('--stim'),1.6);
+  c.textAlign='right';c.fillStyle=css('--stim');c.fillText('estímulo (µA/cm²)',g.w-f.pad.r,10);
+  vcursor(g,f,sim.t[cursor]);
+}
+function drawG(){
+  const g=prep($('cg'));const f=frame(g,[0,P.tmax],[0,1],{yt:[0,.25,.5,.75,1],yf:v=>fmt(v,2),xl:'ms'});
+  const n=nVisible();
+  line(g,f,sim.t,sim.m,n,css('--na'));line(g,f,sim.t,sim.h,n,css('--h'));line(g,f,sim.t,sim.n,n,css('--k'));
+  vcursor(g,f,sim.t[cursor]);
+}
+function drawI(){
+  const g=prep($('ci'));const n=nVisible();
+  if(showCond){
+    let hi=1;for(let i=0;i<sim.n_;i++)hi=Math.max(hi,sim.gNa[i],sim.gK[i]);hi=Math.ceil(hi*1.1/5)*5;
+    const f=frame(g,[0,P.tmax],[0,hi],{yt:ticks(0,hi,4),yl:'mS/cm²',xl:'ms'});
+    line(g,f,sim.t,sim.gNa,n,css('--na'));line(g,f,sim.t,sim.gK,n,css('--k'));vcursor(g,f,sim.t[cursor]);
+  }else{
+    let lo=-1,hi=1;for(let i=0;i<sim.n_;i++){lo=Math.min(lo,sim.INa[i],sim.IK[i]);hi=Math.max(hi,sim.INa[i],sim.IK[i]);}
+    lo*=1.1;hi*=1.1;const f=frame(g,[0,P.tmax],[lo,hi],{yt:ticks(lo,hi,5),yf:v=>fmt(v,0),yl:'µA/cm²',xl:'ms'});
+    hline(g,f,0,css('--axis'));
+    line(g,f,sim.t,sim.IL,n,css('--leak'),1.4);line(g,f,sim.t,sim.INa,n,css('--na'));line(g,f,sim.t,sim.IK,n,css('--k'));
+    const c=g.c;c.textAlign='left';c.fillStyle=css('--muted');c.fillText('entrante ↓',f.pad.l+4,g.h-f.pad.b-8);c.fillText('saliente ↑',f.pad.l+4,f.pad.t+8);
+    vcursor(g,f,sim.t[cursor]);
+  }
+}
+function drawP(){
+  const g=prep($('cp'));const xr=[-100,60],yr=[0,1];
+  const f=frame(g,xr,yr,{yt:[0,.2,.4,.6,.8,1],yf:v=>fmt(v,1),xt:ticks(-100,60,8),xl:'V (mV)',xlo:0,yl:'n'});
+  const c=g.c, I=sim.I[cursor];
+  // nulclina de n
+  const vs=[],ns=[];for(let V=-100;V<=60;V+=1){vs.push(V);ns.push(xinf(V)[2]);}
+  line(g,f,vs,ns,vs.length,css('--k'),1.6,[5,4]);
+  // nulclina de V del modelo reducido: puntos donde dV/dt cambia de signo
+  c.fillStyle=css('--stim');
+  const F=(V,n)=>{const m=xinf(V)[0],h=Math.max(0,0.89-1.1*n);return I-P.gNa*m*m*m*h*(V-ENa)-P.gK*n**4*(V-EK)-P.gL*(V-EL);};
+  for(let V=-100;V<=60;V+=0.4){let prev=F(V,0);for(let n=0.0025;n<=1;n+=0.0025){const cur=F(V,n);if(prev*cur<=0){c.fillRect(f.X(V)-1,f.Y(n)-1,2.2,2.2);}prev=cur;}}
+  for(let n=0;n<=1;n+=0.004){let prev=F(-100,n);for(let V=-99.5;V<=60;V+=0.5){const cur=F(V,n);if(prev*cur<=0)c.fillRect(f.X(V)-1,f.Y(n)-1,2.2,2.2);prev=cur;}}
+  // trayectoria
+  c.save();c.beginPath();c.rect(f.pad.l,f.pad.t,g.w-f.pad.l-f.pad.r,g.h-f.pad.t-f.pad.b);c.clip();
+  const nv=Math.min(nVisible(),cursor+1);
+  c.globalAlpha=.25;line(g,f,sim.V,sim.n,sim.n_,css('--vm'),1.2);c.globalAlpha=1;
+  line(g,f,sim.V,sim.n,nv,css('--vm'),2);
+  c.fillStyle=css('--vm');c.beginPath();c.arc(f.X(sim.V[cursor]),f.Y(sim.n[cursor]),5,0,7);c.fill();
+  c.strokeStyle=css('--surface');c.lineWidth=2;c.stroke();c.restore();
+  c.textAlign='right';c.fillStyle=css('--muted');c.fillText('I = '+fmt(I)+' µA/cm²',g.w-f.pad.r-2,f.pad.t+10);
+}
+function drawFI(){
+  const g=prep($('cf'));const xr=[0,160];
+  let hi=20;if(fi)fi.forEach(p=>hi=Math.max(hi,p[1]));hi=Math.ceil(hi*1.15/20)*20;
+  const f=frame(g,xr,[0,hi],{yt:ticks(0,hi,4),yf:v=>fmt(v,0),yl:'Hz',xl:'I (µA/cm²)'});
+  const c=g.c;
+  if(!fi){c.textAlign='center';c.fillStyle=css('--muted');c.fillText('Calculando…',g.w/2,g.h/2);return;}
+  const xs=fi.map(p=>p[0]),ys=fi.map(p=>p[1]);
+  line(g,f,xs,ys,xs.length,css('--vm'),1.8);
+  c.fillStyle=css('--vm');fi.forEach(p=>{c.beginPath();c.arc(f.X(p[0]),f.Y(p[1]),1.6,0,7);c.fill();});
+  const a=Math.max(0,Math.min(160,P.amp));let fr=0;let best=1e9;fi.forEach(p=>{const d=Math.abs(p[0]-a);if(d<best){best=d;fr=p[1];}});
+  c.fillStyle=css('--stim');c.beginPath();c.arc(f.X(a),f.Y(fr),5,0,7);c.fill();
+}
+function updateReadout(){
+  const i=cursor, m=sim.m[i],h=sim.h[i],n=sim.n[i];
+  $('cap-t').textContent='En t = '+fmt(sim.t[i],2)+' ms.';
+  $('r-v').textContent=fmt(sim.V[i])+' mV';$('r-ina').textContent=fmt(sim.INa[i]);$('r-ik').textContent=fmt(sim.IK[i]);
+  ['gm1','gm2','gm3'].forEach(id=>$(id).style.height=(m*100)+'%');$('gh').style.height=(h*100)+'%';
+  ['gn1','gn2','gn3','gn4'].forEach(id=>$(id).style.height=(n*100)+'%');
+  $('p-na').textContent=fmt(m*m*m*h*100)+' %';$('p-k').textContent=fmt(n**4*100)+' %';
+}
+function drawAll(){if(!sim)return;drawV();drawS();drawG();drawI();drawP();drawFI();updateReadout();}
+
+// ---------- Curva F–I (en segundo plano) ----------
+let fiJob=0;
+function computeFI(){
+  const key=[P.gNa,P.gK,P.gL,P.temp].join('|');if(key===fiKey&&fi)return;fiKey=key;fi=null;
+  const job=++fiJob, pts=[];for(let a=0;a<=30;a+=1)pts.push(a);for(let a=34;a<=160;a+=6)pts.push(a);
+  const res=[];let k=0;const pp={...P};
+  (function step(){if(job!==fiJob)return;const t0=performance.now();
+    while(k<pts.length&&performance.now()-t0<25){res.push([pts[k],firingRate(pp,pts[k])]);k++;}
+    if(k<pts.length)setTimeout(step,0);else{fi=res;drawFI();}})();
+}
+
+// ---------- Ciclo ----------
+function run(){
+  sim=simulate(P);cursor=Math.min(cursor,sim.n_-1);
+  if(!playing)reveal=Infinity;
+  drawAll();computeFI();
+}
+let raf=0;
+function play(){
+  if(playing){stop();return;}
+  playing=true;$('play').textContent='Detener';reveal=0;cursor=0;
+  const dur=Math.max(2500,P.tmax*45),start=performance.now();
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const tick=now=>{const fr=reduce?1:Math.min(1,(now-start)/dur);reveal=Math.round(fr*(sim.n_-1));cursor=reveal;drawAll();
+    if(fr<1&&playing)raf=requestAnimationFrame(tick);else stop();};
+  raf=requestAnimationFrame(tick);
+}
+function stop(){playing=false;cancelAnimationFrame(raf);reveal=Infinity;$('play').textContent='Reproducir';drawAll();}
+
+// ---------- Eventos ----------
+function setPreset(name){
+  P={...DEF,...PRESETS[name]};
+  document.querySelectorAll('#presets button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.p===name));
+  $('cap-v').textContent=CAPS[name];
+  syncUI();if(playing)stop();cursor=0;run();
+}
+document.querySelectorAll('#presets button').forEach(b=>b.addEventListener('click',()=>setPreset(b.dataset.p)));
+function clearPreset(){document.querySelectorAll('#presets button').forEach(b=>b.setAttribute('aria-pressed','false'));}
+KEYS.forEach(k=>$(k).addEventListener('input',e=>{P[k]=+e.target.value;$('o-'+k).textContent=units[k](P[k]);clearPreset();run();}));
+$('type').addEventListener('change',e=>{P.type=e.target.value;syncUI();clearPreset();run();});
+$('play').addEventListener('click',play);
+$('reset').addEventListener('click',()=>setPreset('ap'));
+$('b-cur').addEventListener('click',()=>{showCond=false;$('b-cur').setAttribute('aria-pressed',true);$('b-cond').setAttribute('aria-pressed',false);$('t-cur').textContent='Corrientes iónicas';$('leg-l').style.display='';drawI();});
+$('b-cond').addEventListener('click',()=>{showCond=true;$('b-cond').setAttribute('aria-pressed',true);$('b-cur').setAttribute('aria-pressed',false);$('t-cur').textContent='Conductancias iónicas';$('leg-l').style.display='none';drawI();});
+['cv','cs','cg','ci'].forEach(id=>{
+  const cv=$(id);
+  const h=e=>{if(playing||!sim)return;const r=cv.getBoundingClientRect();const x=e.clientX-r.left;
+    const t=(x-PAD.l)/(r.width-PAD.l-PAD.r)*P.tmax;cursor=Math.max(0,Math.min(sim.n_-1,Math.round(t/(DT*REC))));drawAll();};
+  cv.addEventListener('pointermove',h);cv.addEventListener('pointerdown',h);
+});
+let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(drawAll,80);});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',drawAll);
+$('theme').addEventListener('click',()=>{const r=document.documentElement;const dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+  r.dataset.theme=dark?'light':'dark';try{localStorage.setItem('hh-theme',r.dataset.theme);}catch(e){}drawAll();});
+try{const t=localStorage.getItem('hh-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}
+
+syncUI();$('cap-v').textContent=CAPS.ap;
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(drawAll);
+run();
+})();
+</script>
+</body>
+</html>

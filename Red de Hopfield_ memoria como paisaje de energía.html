@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Red de Hopfield: memoria como paisaje de energía</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#ECEEE8; --surface:#F8F9F6; --ink:#20242B; --muted:#5E6570; --grid:#D7DBD2; --axis:#A3AAA0;
+  --on:#2A2F5C; --off:#E3E6DE; --pos:#2E6F5E; --neg:#A8452F; --energy:#9A6B00; --hl:#E0A400;
+  --focus:#2A2F5C;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121512; --surface:#1A1E1B; --ink:#E1E5DE; --muted:#97A096; --grid:#2A302B; --axis:#4F574F;
+    --on:#B9C2FF; --off:#252B27; --pos:#5BC2A5; --neg:#EE8467; --energy:#E2B33C; --hl:#F2C14E; --focus:#B9C2FF;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121512; --surface:#1A1E1B; --ink:#E1E5DE; --muted:#97A096; --grid:#2A302B; --axis:#4F574F;
+  --on:#B9C2FF; --off:#252B27; --pos:#5BC2A5; --neg:#EE8467; --energy:#E2B33C; --hl:#F2C14E; --focus:#B9C2FF;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Manrope,system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1240px;margin:0 auto;padding:28px 20px 70px}
+header{margin-bottom:24px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:18px 40px;align-items:end}
+h1{font-family:Literata,Georgia,serif;font-weight:500;font-size:clamp(30px,4.4vw,52px);line-height:1.02;margin:0;letter-spacing:-.015em}
+header p{margin:0;color:var(--muted);max-width:58ch}
+h2{font-family:Literata,Georgia,serif;font-weight:500;font-size:21px;margin:0 0 4px}
+.cap{color:var(--muted);font-size:13.5px;margin:2px 0 12px;max-width:70ch}
+.panel{background:var(--surface);border-radius:14px;padding:18px}
+.main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+.stack{display:grid;gap:18px}
+#net{display:block;width:100%;max-width:520px;aspect-ratio:1;margin:0 auto;border-radius:10px;touch-action:none;cursor:pointer}
+.status{min-height:44px;margin:12px 0 4px;font-size:14.5px;display:flex;gap:10px;align-items:center}
+.status .dot{width:10px;height:10px;border-radius:50%;background:var(--axis);flex:none}
+.status.ok .dot{background:var(--pos)} .status.bad .dot{background:var(--neg)} .status.run .dot{background:var(--hl)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+button{font:inherit}
+.btn{font-size:14px;font-weight:600;padding:9px 14px;border-radius:9px;border:0;cursor:pointer;background:var(--on);color:var(--surface)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--grid);font-weight:500}
+.btn.ghost:hover{border-color:var(--axis)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.ctls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 16px;margin-top:16px}
+.ctl label{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.ctl output{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--on)}
+.seg{display:inline-flex;border:1px solid var(--grid);border-radius:9px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--muted);padding:6px 11px;font-size:13px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.opts{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;margin-top:14px;font-size:13px;color:var(--muted)}
+.mems{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px}
+.mem{border:1px solid var(--grid);border-radius:10px;padding:8px;position:relative;background:transparent;text-align:left;color:var(--ink);cursor:pointer}
+.mem.best{border-color:var(--hl);box-shadow:0 0 0 1px var(--hl)}
+.mem canvas{width:100%;aspect-ratio:1;display:block;border-radius:4px}
+.mem .nm{font-size:13px;font-weight:600;margin-top:6px;display:flex;justify-content:space-between}
+.mem .nm span{font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums}
+.mem .ov{height:4px;background:var(--off);border-radius:2px;margin-top:5px;position:relative;overflow:hidden}
+.mem .ov i{position:absolute;top:0;bottom:0;left:50%;background:var(--pos)}
+.mem .x{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:0;background:var(--surface);color:var(--muted);cursor:pointer;font-size:14px;line-height:1;opacity:.9}
+.mem .x:hover{color:var(--neg)}
+.lib{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;align-items:center;font-size:13px;color:var(--muted)}
+.chip{border:1px dashed var(--axis);background:transparent;color:var(--ink);border-radius:999px;padding:4px 11px;font-size:13px;cursor:pointer}
+.chip:disabled{opacity:.4;cursor:default}
+.load{display:flex;gap:16px;align-items:baseline;margin:12px 0 0;font-size:13px;color:var(--muted)}
+.load b{font-size:18px;color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+canvas.plot{display:block;width:100%}
+.wgrid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:16px;align-items:start}
+.wgrid canvas{width:100%;aspect-ratio:1;display:block;border-radius:6px;image-rendering:pixelated}
+.scale{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-top:8px}
+.scale i{flex:1;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--neg),var(--off),var(--pos))}
+.wide{margin-top:18px}
+.theory{margin-top:30px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+.theory p,.theory li{font-family:Literata,Georgia,serif;font-size:16.5px;line-height:1.65;max-width:66ch}
+.theory ul{padding-left:20px}
+.eq{font-family:Literata,Georgia,serif;font-size:17px;background:var(--bg);border-radius:10px;padding:10px 14px;margin:10px 0;overflow-x:auto;white-space:nowrap}
+.note{font-size:13px;color:var(--muted)}
+.themebtn{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);border:1px solid var(--grid);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:13px}
+@media (max-width:920px){.main,header,.theory,.wgrid{grid-template-columns:minmax(0,1fr)}.ctls{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>La red de Hopfield recuerda cayendo cuesta abajo</h1>
+  <p>Cada memoria es un valle en un paisaje de energía. Dale a la red un recuerdo dañado y sus 144 neuronas se irán acomodando, una a una, hasta caer en el valle más cercano. Dibuja sobre la cuadrícula, añade ruido y pulsa “Recordar”.</p>
+</header>
+
+<div class="main">
+  <section class="panel">
+    <h2>Estado de la red</h2>
+    <p class="cap">12 × 12 neuronas binarias: oscuro = +1 (activa), claro = −1. Haz clic o arrastra para dibujar. Al pasar el cursor por una neurona verás sus pesos abajo.</p>
+    <canvas id="net" aria-label="Estado de las neuronas, editable"></canvas>
+    <div class="status" id="status" role="status"><span class="dot"></span><span id="status-t"></span></div>
+    <div class="bar">
+      <button class="btn" id="run">Recordar</button>
+      <button class="btn ghost" id="step">Un paso</button>
+      <button class="btn ghost" id="noise">Añadir ruido</button>
+      <button class="btn ghost" id="invert">Invertir</button>
+      <button class="btn ghost" id="random">Aleatorio</button>
+      <button class="btn ghost" id="clear">Borrar</button>
+    </div>
+    <div class="ctls">
+      <div class="ctl"><label for="noiseAmt">Ruido <output id="o-noise"></output></label><input id="noiseAmt" type="range" min="2" max="50" step="1" value="25"></div>
+      <div class="ctl"><label for="speed">Velocidad <output id="o-speed"></output></label><input id="speed" type="range" min="1" max="40" step="1" value="6"></div>
+      <div class="ctl"><label for="temp">Temperatura <output id="o-temp"></output></label><input id="temp" type="range" min="0" max="1.5" step="0.05" value="0"></div>
+    </div>
+    <div class="opts">
+      <span>Actualización</span>
+      <div class="seg" role="group" aria-label="Modo de actualización"><button id="m-async" aria-pressed="true">Asíncrona</button><button id="m-sync" aria-pressed="false">Síncrona</button></div>
+    </div>
+  </section>
+
+  <div class="stack">
+    <section class="panel">
+      <h2>Memorias almacenadas</h2>
+      <p class="cap">La barra muestra el solapamiento m con el estado actual: +1 idéntico, 0 sin relación, −1 su negativo. Toca una memoria para cargarla en la red.</p>
+      <div class="mems" id="mems"></div>
+      <div class="bar">
+        <button class="btn ghost" id="store">Guardar dibujo como memoria</button>
+      </div>
+      <div class="lib" id="lib"><span>Añadir:</span></div>
+      <div class="opts">
+        <span>Regla de aprendizaje</span>
+        <div class="seg" role="group" aria-label="Regla de aprendizaje"><button id="r-hebb" aria-pressed="true">Hebb</button><button id="r-pinv" aria-pressed="false">Pseudo-inversa</button></div>
+      </div>
+      <div class="load"><span>Carga α = P/N <b id="alpha">–</b></span><span id="alpha-note"></span></div>
+    </section>
+
+    <section class="panel">
+      <h2>Energía y solapamientos</h2>
+      <p class="cap">Con temperatura cero la energía solo puede bajar o quedarse igual: cada cambio de una neurona hace descender a la red por el paisaje. El eje horizontal cuenta barridos (144 actualizaciones).</p>
+      <canvas id="cE" class="plot" height="140" aria-label="Energía en el tiempo"></canvas>
+      <canvas id="cO" class="plot" height="140" aria-label="Solapamiento con cada memoria"></canvas>
+    </section>
+  </div>
+</div>
+
+<section class="panel wide">
+  <h2>Los pesos sinápticos</h2>
+  <p class="cap">La matriz W de 144 × 144 guarda todas las memorias superpuestas; ninguna está en un lugar concreto. A la derecha, la fila de la neurona elegida vista como imagen: a quién excita (verde) y a quién inhibe (rojo). La neurona elegida queda fija aunque saques el cursor de la red.</p>
+  <div class="wgrid">
+    <div><canvas id="cW" aria-label="Matriz de pesos"></canvas><div class="scale"><span>inhibición</span><i></i><span>excitación</span></div></div>
+    <div><canvas id="cR" aria-label="Campo receptivo de la neurona señalada"></canvas><p class="note" id="rf-t">Elige una neurona pasando el cursor por la red, tocando una fila de la matriz o tocando esta imagen.</p></div>
+  </div>
+</section>
+
+<section class="panel wide">
+  <h2>¿Cuántas memorias caben?</h2>
+  <p class="cap">Experimento con N = 100 neuronas y patrones aleatorios: se guardan P memorias, se corrompe cada una con 10 % de ruido y se mide qué fracción se recupera. Con la regla de Hebb la memoria se derrumba cerca de α ≈ 0,138 (línea punteada).</p>
+  <div class="bar" style="margin:0 0 10px"><button class="btn" id="cap-run">Ejecutar experimento</button><span class="note" id="cap-st" style="align-self:center"></span></div>
+  <canvas id="cC" class="plot" height="220" aria-label="Capacidad de la red"></canvas>
+</section>
+
+<section class="theory">
+  <div class="panel">
+    <h2>El modelo</h2>
+    <p>Cada neurona tiene un estado s<sub>i</sub> = ±1. Para recordar, se elige una neurona y se alinea con su campo local:</p>
+    <div class="eq">s<sub>i</sub> ← sgn( h<sub>i</sub> ), &nbsp; h<sub>i</sub> = Σ<sub>j</sub> w<sub>ij</sub> s<sub>j</sub></div>
+    <p>Los pesos se aprenden con la regla de Hebb, “las neuronas que disparan juntas se conectan”:</p>
+    <div class="eq">w<sub>ij</sub> = (1/N) Σ<sub>μ</sub> ξ<sub>i</sub><sup>μ</sup> ξ<sub>j</sub><sup>μ</sup>, &nbsp; w<sub>ii</sub> = 0</div>
+    <p>Como W es simétrica, existe una función de Lyapunov, la energía</p>
+    <div class="eq">E = −½ Σ<sub>i,j</sub> w<sub>ij</sub> s<sub>i</sub> s<sub>j</sub></div>
+    <p>que nunca aumenta con la actualización asíncrona. Por eso la red siempre llega a un punto fijo: un mínimo local de E.</p>
+    <p class="note">La pseudo-inversa usa w = (1/N) Σ<sub>μν</sub> ξ<sup>μ</sup>(C<sup>−1</sup>)<sub>μν</sub>ξ<sup>ν</sup>, con C la matriz de solapamientos entre memorias. Descorrelaciona patrones parecidos.</p>
+  </div>
+  <div class="panel">
+    <h2>Qué observar</h2>
+    <ul>
+      <li><b>Memoria direccionable por contenido.</b> No se busca una dirección: un fragmento del recuerdo basta para reconstruirlo. Carga “cara”, añade 25 % de ruido y recuerda.</li>
+      <li><b>Cuencas de atracción.</b> Con más de un 40 % de ruido el estado inicial cae en otro valle: la red recuerda algo, pero no lo correcto.</li>
+      <li><b>Estados inversos.</b> E es simétrica bajo s → −s, así que el negativo de cada memoria también es un mínimo. Pulsa “Invertir” y luego “Recordar”.</li>
+      <li><b>Interferencia.</b> Añade “corazón” y “flecha”: se parecen a “casa” y con Hebb aparecen estados espurios, mezclas de varias memorias. Cambia a la pseudo-inversa y vuelven a ser estables.</li>
+      <li><b>Actualización síncrona.</b> Si todas las neuronas cambian a la vez, la energía ya no está garantizada y pueden aparecer ciclos de período 2.</li>
+      <li><b>Temperatura.</b> Con T &gt; 0 cada neurona sigue a su campo solo con probabilidad 1/(1 + e<sup>−2h/T</sup>). Un poco de ruido ayuda a escapar de mínimos espurios poco profundos; demasiado borra la memoria.</li>
+    </ul>
+  </div>
+</section>
+</div>
+
+<button class="themebtn" id="theme" aria-label="Cambiar tema">Tema</button>
+
+<script>
+(function(){
+"use strict";
+const S=12, N=S*S;
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmt=(v,d=2)=>v.toLocaleString('es',{minimumFractionDigits:d,maximumFractionDigits:d});
+
+// ---------- Patrones ----------
+const LIB={
+casa:["............",".....##.....","....####....","...######...","..########..",".##########.","..########..","..##....##..","..##.##.##..","..##.##.##..","..##.##.##..","............"],
+cara:["....####....","..##....##..",".#........#.",".#.##..##.#.","#..##..##..#","#..........#","#..........#","#.#......#.#",".#.######.#.",".#........#.","..##....##..","....####...."],
+cruz:["##........##","###......###",".###....###.","..###..###..","...######...","....####....","....####....","...######...","..###..###..",".###....###.","###......###","##........##"],
+tablero:["###...###...","###...###...","###...###...","...###...###","...###...###","...###...###","###...###...","###...###...","###...###...","...###...###","...###...###","...###...###"],
+"corazón":["............","..###..###..",".#####.####.","############","############","############",".##########.","..########..","...######...","....####....",".....##.....","............"],
+flecha:["............","......#.....","......##....","......###...","##########..","###########.","###########.","##########..","......###...","......##....","......#.....","............"]
+};
+const toPat=rows=>Int8Array.from(rows.join('').split(''),c=>c==='#'?1:-1);
+let mems=['casa','cara','cruz','tablero'].map(n=>({name:n,p:toPat(LIB[n])}));
+let customCount=0;
+
+// ---------- Estado ----------
+let s=new Int8Array(N), W=new Float32Array(N*N), rule='hebb', mode='async', T=0;
+let running=false, raf=0, order=[], ordPos=0, sweeps=0, lastIdx=-1, changedInSweep=0, prev1=null, prev2=null;
+let histE=[], histO=[], hover=4*12+4;
+function overlap(a,b){let x=0;for(let i=0;i<N;i++)x+=a[i]*b[i];return x/N;}
+function energy(){let e=0;for(let i=0;i<N;i++){let h=0;const r=i*N;for(let j=0;j<N;j++)h+=W[r+j]*s[j];e+=h*s[i];}return -0.5*e;}
+function field(i){let h=0;const r=i*N;for(let j=0;j<N;j++)h+=W[r+j]*s[j];return h;}
+
+function invert(A){const n=A.length,M=A.map((r,i)=>[...r,...Array.from({length:n},(_,j)=>+(i===j))]);
+  for(let c=0;c<n;c++){let p=c;for(let r=c+1;r<n;r++)if(Math.abs(M[r][c])>Math.abs(M[p][c]))p=r;[M[c],M[p]]=[M[p],M[c]];
+    const d=M[c][c];if(Math.abs(d)<1e-9)return null;for(let k=0;k<2*n;k++)M[c][k]/=d;
+    for(let r=0;r<n;r++)if(r!==c){const f=M[r][c];if(f)for(let k=0;k<2*n;k++)M[r][k]-=f*M[c][k];}}
+  return M.map(r=>r.slice(n));}
+let pinvFailed=false;
+function learn(){
+  W=new Float32Array(N*N);pinvFailed=false;const P=mems.length;if(!P)return;
+  let coef=null;
+  if(rule==='pinv'){const C=mems.map(a=>mems.map(b=>overlap(a.p,b.p)));coef=invert(C);if(!coef)pinvFailed=true;}
+  if(!coef){for(const m of mems){const p=m.p;for(let i=0;i<N;i++){const pi=p[i]/N,r=i*N;for(let j=0;j<N;j++)W[r+j]+=pi*p[j];}}}
+  else{const U=mems.map((_,mu)=>{const u=new Float32Array(N);for(let nu=0;nu<P;nu++){const c=coef[mu][nu];const p=mems[nu].p;for(let j=0;j<N;j++)u[j]+=c*p[j];}return u;});
+    for(let mu=0;mu<P;mu++){const p=mems[mu].p,u=U[mu];for(let i=0;i<N;i++){const pi=p[i]/N,r=i*N;for(let j=0;j<N;j++)W[r+j]+=pi*u[j];}}}
+  for(let i=0;i<N;i++)W[i*N+i]=0;
+}
+
+// ---------- Dinámica ----------
+function shuffle(){order=[...Array(N).keys()];for(let i=N-1;i>0;i--){const j=Math.random()*(i+1)|0;[order[i],order[j]]=[order[j],order[i]];}ordPos=0;}
+function updateOne(){
+  if(ordPos>=N){sweeps++;const c=changedInSweep;changedInSweep=0;shuffle();if(c===0&&T===0)return 'conv';}
+  const i=order[ordPos++];lastIdx=i;const h=field(i);let v;
+  if(T>0){v=Math.random()<1/(1+Math.exp(-2*h/T))?1:-1;}else v=h>0?1:h<0?-1:s[i];
+  if(v!==s[i]){s[i]=v;changedInSweep++;}
+  return null;
+}
+function syncStep(){
+  const ns=new Int8Array(N);for(let i=0;i<N;i++){const h=field(i);ns[i]=T>0?(Math.random()<1/(1+Math.exp(-2*h/T))?1:-1):(h>0?1:h<0?-1:s[i]);}
+  prev2=prev1;prev1=s;s=ns;sweeps++;lastIdx=-1;
+  if(T===0){if(eq(s,prev1))return 'conv';if(prev2&&eq(s,prev2))return 'cycle';}
+  return null;
+}
+const eq=(a,b)=>{for(let i=0;i<N;i++)if(a[i]!==b[i])return false;return true;};
+function record(){histE.push([sweeps+(mode==='async'?ordPos/N:0),energy()]);histO.push(mems.map(m=>overlap(s,m.p)));if(histE.length>600){histE.shift();histO.shift();}}
+function resetHist(){histE=[];histO=[];sweeps=0;changedInSweep=0;prev1=prev2=null;shuffle();record();}
+
+function frame(){
+  const k=+$('speed').value;let res=null;
+  if(mode==='async'){for(let n=0;n<k*4&&!res;n++)res=updateOne();}
+  else{frameCount=(frameCount+1)%Math.max(1,Math.round(30/k));if(frameCount===0)res=syncStep();}
+  record();drawAll();
+  if(res||sweeps>=(T>0?60:40)){stop(res);return;}
+  raf=requestAnimationFrame(frame);
+}
+let frameCount=0;
+function start(){if(running){stop('user');return;}running=true;$('run').textContent='Detener';resetHist();setStatus('run','Recordando…');raf=requestAnimationFrame(frame);}
+function stop(res){running=false;cancelAnimationFrame(raf);$('run').textContent='Recordar';lastIdx=-1;
+  if(res==='cycle')setStatus('bad','La red oscila entre dos estados (ciclo de período 2). Con actualización síncrona la energía no está garantizada.');
+  else if(res==='user')describe('Detenido. ');
+  else if(T>0&&res!=='conv')describe('Con temperatura la red nunca se queda quieta. ');
+  else describe('');
+  drawAll();}
+function describe(prefix){
+  if(!mems.length){setStatus('','Guarda al menos una memoria para que la red tenga algo que recordar.');return;}
+  let best=-1,bm=0;mems.forEach((m,i)=>{const o=overlap(s,m.p);if(Math.abs(o)>Math.abs(bm)){bm=o;best=i;}});
+  const nm=mems[best].name;
+  if(bm>0.999)setStatus('ok',prefix+`Recuperó “${nm}” sin errores.`);
+  else if(bm<-0.999)setStatus('bad',prefix+`Cayó en el negativo de “${nm}”, también un mínimo de energía.`);
+  else if(Math.abs(bm)>0.9)setStatus(bm>0?'ok':'bad',prefix+`Casi “${nm}”${bm<0?' invertida':''}: ${Math.round((1-Math.abs(bm))/2*N)} neuronas distintas.`);
+  else setStatus('bad',prefix+`Estado mezclado: el más parecido es “${nm}” (m = ${fmt(bm)}). ${running?'':'Si ya no cambia, es un estado espurio.'}`);
+}
+function setStatus(cls,t){$('status').className='status '+cls;$('status-t').textContent=t;}
+
+// ---------- Dibujo ----------
+function prep(cv,hAttr){const dpr=devicePixelRatio||1,w=cv.clientWidth,h=hAttr||cv.clientHeight;
+  if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}
+  if(hAttr)cv.style.height=hAttr+'px';
+  const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);return {c,w,h};}
+function drawPattern(c,p,x0,y0,size,gap,on,off){const cs=size/S;for(let i=0;i<N;i++){c.fillStyle=p[i]>0?on:off;c.fillRect(x0+(i%S)*cs+gap/2,y0+(i/S|0)*cs+gap/2,cs-gap,cs-gap);}}
+function drawNet(){
+  const cv=$('net'),g=prep(cv);const size=g.w,cs=size/S,on=css('--on'),off=css('--off');
+  for(let i=0;i<N;i++){const x=(i%S)*cs,y=(i/S|0)*cs;g.c.fillStyle=s[i]>0?on:off;
+    g.c.beginPath();g.c.roundRect?g.c.roundRect(x+2,y+2,cs-4,cs-4,Math.min(6,cs/5)):g.c.rect(x+2,y+2,cs-4,cs-4);g.c.fill();}
+  const mark=(i,col,w)=>{if(i<0)return;const x=(i%S)*cs,y=(i/S|0)*cs;g.c.strokeStyle=col;g.c.lineWidth=w;g.c.strokeRect(x+1.5,y+1.5,cs-3,cs-3);};
+  mark(lastIdx,css('--hl'),3);if(!running)mark(hover,css('--hl'),2);
+}
+function drawMems(){
+  const box=$('mems');
+  if(box.children.length!==mems.length){box.innerHTML='';mems.forEach((m,i)=>{
+    const el=document.createElement('div');el.className='mem';el.tabIndex=0;el.setAttribute('role','button');el.setAttribute('aria-label','Cargar '+m.name);
+    el.innerHTML=`<canvas></canvas><div class="nm">${m.name}<span></span></div><div class="ov"><i></i></div><button class="x" aria-label="Olvidar ${m.name}">×</button>`;
+    el.addEventListener('click',e=>{if(e.target.classList.contains('x'))return;if(running)stop('user');s=Int8Array.from(m.p);resetHist();setStatus('',`“${m.name}” cargada. Añade ruido y pulsa Recordar.`);drawAll();});
+    el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();el.click();}});
+    el.querySelector('.x').addEventListener('click',()=>{mems.splice(i,1);changedMems();});
+    box.appendChild(el);});}
+  let best=-1,bm=0;mems.forEach((m,i)=>{const o=Math.abs(overlap(s,m.p));if(o>bm){bm=o;best=i;}});
+  [...box.children].forEach((el,i)=>{const m=mems[i],o=overlap(s,m.p);
+    const g=prep(el.querySelector('canvas'));drawPattern(g.c,m.p,0,0,g.w,1,css('--on'),css('--off'));
+    el.querySelector('.nm span').textContent=fmt(o);const bar=el.querySelector('.ov i');
+    bar.style.left=o>=0?'50%':(50+o*50)+'%';bar.style.width=Math.abs(o)*50+'%';bar.style.background=o>=0?'var(--pos)':'var(--neg)';
+    el.classList.toggle('best',i===best&&bm>0.9);});
+  const a=mems.length/N;$('alpha').textContent=fmt(a,3);
+  $('alpha-note').textContent=pinvFailed?'Hay memorias linealmente dependientes; se usa Hebb.':rule==='hebb'?(a>0.138?'por encima del límite teórico 0,138':'límite teórico con Hebb: 0,138'):'la pseudo-inversa admite hasta P = N';
+  document.querySelectorAll('#lib .chip').forEach(b=>b.disabled=mems.some(m=>m.name===b.dataset.n));
+}
+const PAL=['--on','--pos','--neg','--energy','--muted','--hl'];
+function axes(g,xr,yr,yt,yl,pad){const {c,w,h}=g;const X=x=>pad.l+(x-xr[0])/(xr[1]-xr[0]||1)*(w-pad.l-pad.r),Y=y=>h-pad.b-(y-yr[0])/(yr[1]-yr[0]||1)*(h-pad.t-pad.b);
+  c.font='11px Manrope, system-ui, sans-serif';c.textBaseline='middle';c.lineWidth=1;
+  yt.forEach(v=>{c.strokeStyle=css('--grid');c.beginPath();c.moveTo(pad.l,Math.round(Y(v))+.5);c.lineTo(w-pad.r,Math.round(Y(v))+.5);c.stroke();c.fillStyle=css('--muted');c.textAlign='right';c.fillText(typeof v==='number'?fmt(v,Math.abs(v)<10&&v%1?1:0):v,pad.l-6,Y(v));});
+  if(yl){c.fillStyle=css('--muted');c.textAlign='left';c.fillText(yl,pad.l+4,pad.t+6);}
+  return {X,Y};}
+function drawPlots(){
+  const pad={l:44,r:10,t:8,b:20};
+  {const g=prep($('cE'),140);const xs=histE.map(p=>p[0]),ys=histE.map(p=>p[1]);
+    let lo=Math.min(...ys,-1),hi=Math.max(...ys,0);const sp=(hi-lo)||1;lo-=sp*.1;hi+=sp*.1;
+    const xr=[xs[0]||0,Math.max((xs[xs.length-1]||0),(xs[0]||0)+1)];
+    const f=axes(g,xr,[lo,hi],[lo+sp*.1,(lo+hi)/2,hi-sp*.1].map(v=>Math.round(v*10)/10),'energía E',pad);
+    g.c.strokeStyle=css('--energy');g.c.lineWidth=2;g.c.beginPath();xs.forEach((x,i)=>i?g.c.lineTo(f.X(x),f.Y(ys[i])):g.c.moveTo(f.X(x),f.Y(ys[i])));g.c.stroke();
+    g.c.fillStyle=css('--muted');g.c.textAlign='right';g.c.textBaseline='top';g.c.fillText('barridos: '+fmt(xr[1],1),g.w-pad.r,g.h-pad.b+5);}
+  {const g=prep($('cO'),140);const xs=histE.map(p=>p[0]);const xr=[xs[0]||0,Math.max(xs[xs.length-1]||0,(xs[0]||0)+1)];
+    const f=axes(g,xr,[-1.05,1.05],[-1,0,1],'solapamiento m',pad);
+    mems.forEach((m,k)=>{g.c.strokeStyle=css(PAL[k%PAL.length]);g.c.lineWidth=1.8;g.c.setLineDash(k>=PAL.length?[4,3]:[]);g.c.beginPath();
+      histO.forEach((o,i)=>{const y=o[k]===undefined?0:o[k];i?g.c.lineTo(f.X(xs[i]),f.Y(y)):g.c.moveTo(f.X(xs[i]),f.Y(y));});g.c.stroke();g.c.setLineDash([]);
+      const last=histO[histO.length-1];if(last&&last[k]!==undefined){g.c.fillStyle=css(PAL[k%PAL.length]);g.c.textAlign='right';g.c.font='600 11px Manrope, system-ui';g.c.fillText(m.name,g.w-pad.r-2,Math.max(pad.t+6,Math.min(g.h-pad.b-6,f.Y(last[k])-8)));}});}
+}
+function colorScale(){const parse=h=>{h=h.replace('#','');return [0,2,4].map(i=>parseInt(h.substr(i,2),16));};return {neg:parse(css('--neg')),mid:parse(css('--off')),pos:parse(css('--pos'))};}
+function wColor(v,sc,max){const t=Math.max(-1,Math.min(1,v/max));const a=t<0?sc.neg:sc.pos,u=Math.abs(t);return sc.mid.map((m,i)=>Math.round(m+(a[i]-m)*u));}
+let wImg=null,wKey='';
+function drawW(){
+  const cv=$('cW');const g=prep(cv);const sc=colorScale();
+  let max=0;for(let i=0;i<W.length;i++)max=Math.max(max,Math.abs(W[i]));max=max*0.6||1;
+  const key=mems.map(m=>m.name).join()+rule+css('--pos');
+  if(key!==wKey){const off=document.createElement('canvas');off.width=N;off.height=N;const oc=off.getContext('2d');const im=oc.createImageData(N,N);
+    for(let i=0;i<N*N;i++){const col=wColor(W[i],sc,max);im.data[i*4]=col[0];im.data[i*4+1]=col[1];im.data[i*4+2]=col[2];im.data[i*4+3]=255;}
+    oc.putImageData(im,0,0);wImg=off;wKey=key;}
+  g.c.imageSmoothingEnabled=false;g.c.drawImage(wImg,0,0,g.w,g.h);
+  if(hover>=0){const y=hover/N*g.h;g.c.strokeStyle=css('--hl');g.c.lineWidth=2;g.c.strokeRect(0,y,g.w,g.h/N);}
+  const r=prep($('cR'));
+  if(hover<0){r.c.fillStyle=css('--off');r.c.fillRect(0,0,r.w,r.h);return;}
+  const cs=r.w/S;for(let j=0;j<N;j++){const col=wColor(W[hover*N+j],sc,max);r.c.fillStyle=`rgb(${col})`;r.c.fillRect((j%S)*cs+1,(j/S|0)*cs+1,cs-2,cs-2);}
+  r.c.strokeStyle=css('--hl');r.c.lineWidth=2;r.c.strokeRect((hover%S)*cs+1,(hover/S|0)*cs+1,cs-2,cs-2);
+  const h=field(hover);$('rf-t').textContent=`Neurona (${hover%S+1}, ${(hover/S|0)+1}). Campo local h = ${fmt(h)}: ${h>0?'empuja hacia +1':h<0?'empuja hacia −1':'neutro'}${Math.sign(h)&&Math.sign(h)!==s[hover]?', así que cambiará en la próxima actualización.':', está estable.'}`;
+}
+function drawAll(){drawNet();drawMems();drawPlots();drawW();}
+
+// ---------- Experimento de capacidad ----------
+let capData=null;
+function drawCap(){
+  const g=prep($('cC'),220);const pad={l:44,r:12,t:10,b:30};const f=axes(g,[0,0.4],[0,1.05],[0,0.25,0.5,0.75,1],'fracción recuperada',pad);
+  const c=g.c;c.fillStyle=css('--muted');c.textAlign='center';c.textBaseline='top';
+  [0,0.1,0.2,0.3,0.4].forEach(v=>c.fillText(fmt(v,1),f.X(v),g.h-pad.b+5));c.textAlign='right';c.fillText('α = P/N',g.w-pad.r,g.h-pad.b+16);
+  c.strokeStyle=css('--neg');c.setLineDash([4,4]);c.beginPath();c.moveTo(f.X(0.138),pad.t);c.lineTo(f.X(0.138),g.h-pad.b);c.stroke();c.setLineDash([]);
+  if(!capData)return;
+  [['hebb','--on','Hebb'],['pinv','--pos','Pseudo-inversa']].forEach(([k,col,lab])=>{const pts=capData[k];if(!pts.length)return;
+    c.strokeStyle=css(col);c.lineWidth=2;c.beginPath();pts.forEach((p,i)=>i?c.lineTo(f.X(p[0]),f.Y(p[1])):c.moveTo(f.X(p[0]),f.Y(p[1])));c.stroke();
+    c.fillStyle=css(col);pts.forEach(p=>{c.beginPath();c.arc(f.X(p[0]),f.Y(p[1]),2.5,0,7);c.fill();});
+    const l=pts[pts.length-1];c.textAlign='left';c.textBaseline='middle';c.font='600 12px Manrope, system-ui';c.fillText(lab,Math.min(f.X(l[0])+6,g.w-90),f.Y(l[1])-(k==='hebb'?10:-10));});
+}
+function capTrial(Nn,P,useP){
+  const pats=[];for(let m=0;m<P;m++)pats.push(Int8Array.from({length:Nn},()=>Math.random()<.5?1:-1));
+  const Wc=new Float32Array(Nn*Nn);let coef=null;
+  if(useP){const C=pats.map(a=>pats.map(b=>{let x=0;for(let i=0;i<Nn;i++)x+=a[i]*b[i];return x/Nn;}));coef=invert(C);}
+  if(!coef){for(const p of pats)for(let i=0;i<Nn;i++){const pi=p[i]/Nn;for(let j=0;j<Nn;j++)Wc[i*Nn+j]+=pi*p[j];}}
+  else{for(let mu=0;mu<P;mu++){const u=new Float32Array(Nn);for(let nu=0;nu<P;nu++){const cc=coef[mu][nu];for(let j=0;j<Nn;j++)u[j]+=cc*pats[nu][j];}
+    const p=pats[mu];for(let i=0;i<Nn;i++){const pi=p[i]/Nn;for(let j=0;j<Nn;j++)Wc[i*Nn+j]+=pi*u[j];}}}
+  for(let i=0;i<Nn;i++)Wc[i*Nn+i]=0;
+  const tests=Math.min(P,6);let ok=0;
+  for(let t=0;t<tests;t++){const p=pats[t];const x=Int8Array.from(p);for(let i=0;i<Nn;i++)if(Math.random()<0.1)x[i]*=-1;
+    for(let sw=0;sw<12;sw++){let ch=0;for(let k=0;k<Nn;k++){const i=Math.random()*Nn|0;let h=0;for(let j=0;j<Nn;j++)h+=Wc[i*Nn+j]*x[j];const v=h>0?1:h<0?-1:x[i];if(v!==x[i]){x[i]=v;ch++;}}if(!ch&&sw>3)break;}
+    let o=0;for(let i=0;i<Nn;i++)o+=x[i]*p[i];if(o/Nn>0.95)ok++;}
+  return ok/tests;
+}
+let capJob=0;
+function runCap(){
+  const job=++capJob;capData={hebb:[],pinv:[]};$('cap-run').disabled=true;
+  const Nn=100,Ps=[1,2,3,4,5,6,8,10,11,12,13,14,15,16,18,20,22,25,30,35,40],trials=5;let k=0;
+  (function step(){if(job!==capJob)return;const t0=performance.now();
+    while(k<Ps.length&&performance.now()-t0<40){const P=Ps[k];let h=0,p=0;for(let t=0;t<trials;t++){h+=capTrial(Nn,P,false);p+=capTrial(Nn,P,true);}
+      capData.hebb.push([P/Nn,h/trials]);capData.pinv.push([P/Nn,p/trials]);k++;}
+    $('cap-st').textContent=k<Ps.length?`Calculando… P = ${Ps[k]}`:'Listo. Promedio de 5 redes por punto.';drawCap();
+    if(k<Ps.length)setTimeout(step,0);else $('cap-run').disabled=false;})();
+}
+
+// ---------- Interacción ----------
+function changedMems(){learn();wKey='';$('mems').innerHTML='';resetHist();describe('');drawAll();}
+const net=$('net');let painting=false,paintVal=1;
+function cellAt(e){const r=net.getBoundingClientRect();const x=Math.floor((e.clientX-r.left)/r.width*S),y=Math.floor((e.clientY-r.top)/r.height*S);return (x<0||y<0||x>=S||y>=S)?-1:y*S+x;}
+net.addEventListener('pointerdown',e=>{if(running)stop('user');const i=cellAt(e);if(i<0)return;painting=true;paintVal=-s[i];s[i]=paintVal;net.setPointerCapture(e.pointerId);hover=i;resetHist();drawAll();});
+net.addEventListener('pointermove',e=>{const i=cellAt(e);if(painting&&i>=0&&s[i]!==paintVal){s[i]=paintVal;resetHist();}if(i!==hover){hover=i;if(!running)drawAll();}else if(painting)drawAll();});
+net.addEventListener('pointerup',()=>{if(painting){painting=false;describe('');drawAll();}});
+net.addEventListener('pointerleave',()=>{if(!painting&&!running)drawAll();});
+function pickFrom(cv,e,fn){const r=cv.getBoundingClientRect();const i=fn((e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height);if(i>=0&&i<N){hover=i;drawAll();}}
+$('cW').addEventListener('pointerdown',e=>pickFrom($('cW'),e,(x,y)=>Math.floor(y*N)));
+$('cW').addEventListener('pointermove',e=>{if(e.buttons)pickFrom($('cW'),e,(x,y)=>Math.floor(y*N));});
+$('cR').addEventListener('pointerdown',e=>pickFrom($('cR'),e,(x,y)=>Math.floor(y*S)*S+Math.floor(x*S)));
+
+$('run').addEventListener('click',start);
+$('step').addEventListener('click',()=>{if(running)stop('user');let res=null;if(mode==='async'){for(let k=0;k<N&&!res;k++)res=updateOne();}else res=syncStep();record();
+  if(res==='cycle')setStatus('bad','Ciclo de período 2.');else describe(res==='conv'?'Punto fijo. ':'');drawAll();});
+$('noise').addEventListener('click',()=>{if(running)stop('user');const q=+$('noiseAmt').value/100;let c=0;for(let i=0;i<N;i++)if(Math.random()<q){s[i]*=-1;c++;}resetHist();setStatus('',`Se cambiaron ${c} neuronas. Pulsa Recordar.`);drawAll();});
+$('invert').addEventListener('click',()=>{if(running)stop('user');for(let i=0;i<N;i++)s[i]*=-1;resetHist();describe('');drawAll();});
+$('random').addEventListener('click',()=>{if(running)stop('user');for(let i=0;i<N;i++)s[i]=Math.random()<.5?1:-1;resetHist();setStatus('','Estado aleatorio. ¿A qué valle caerá?');drawAll();});
+$('clear').addEventListener('click',()=>{if(running)stop('user');s.fill(-1);resetHist();setStatus('','Lienzo vacío. Dibuja algo y guárdalo como memoria, o intenta recordar.');drawAll();});
+$('store').addEventListener('click',()=>{if(s.every(v=>v===-1)||s.every(v=>v===1)){setStatus('bad','Dibuja algo primero: un patrón uniforme no sirve como memoria.');return;}
+  if(mems.some(m=>eq(m.p,s))){setStatus('','Ese patrón ya está guardado.');return;}
+  customCount++;mems.push({name:'dibujo '+customCount,p:Int8Array.from(s)});changedMems();setStatus('ok',`Guardado como “dibujo ${customCount}”.`);});
+Object.keys(LIB).forEach(n=>{const b=document.createElement('button');b.className='chip';b.textContent=n;b.dataset.n=n;
+  b.addEventListener('click',()=>{if(mems.some(m=>m.name===n))return;mems.push({name:n,p:toPat(LIB[n])});changedMems();});$('lib').appendChild(b);});
+const rnd=document.createElement('button');rnd.className='chip';rnd.textContent='patrón aleatorio';
+rnd.addEventListener('click',()=>{customCount++;mems.push({name:'azar '+customCount,p:Int8Array.from({length:N},()=>Math.random()<.5?1:-1)});changedMems();});$('lib').appendChild(rnd);
+function seg(a,b,cb){$(a).addEventListener('click',()=>{$(a).setAttribute('aria-pressed',true);$(b).setAttribute('aria-pressed',false);cb();});}
+seg('r-hebb','r-pinv',()=>{rule='hebb';changedMems();});seg('r-pinv','r-hebb',()=>{rule='pinv';changedMems();});
+seg('m-async','m-sync',()=>{mode='async';resetHist();drawAll();});seg('m-sync','m-async',()=>{mode='sync';resetHist();drawAll();});
+const outs=()=>{$('o-noise').textContent=$('noiseAmt').value+' %';$('o-speed').textContent='×'+$('speed').value;T=+$('temp').value;$('o-temp').textContent=T===0?'0 (determinista)':fmt(T);};
+['noiseAmt','speed','temp'].forEach(id=>$(id).addEventListener('input',outs));
+$('cap-run').addEventListener('click',runCap);
+let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{drawAll();drawCap();},80);});
+const redrawTheme=()=>{wKey='';drawAll();drawCap();};
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redrawTheme);
+$('theme').addEventListener('click',()=>{const r=document.documentElement;const dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;r.dataset.theme=dark?'light':'dark';try{localStorage.setItem('hop-theme',r.dataset.theme);}catch(e){}redrawTheme();});
+try{const t=localStorage.getItem('hop-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}
+
+// ---------- Inicio: “cara” con 25 % de ruido ----------
+outs();learn();s=Int8Array.from(mems[1].p);for(let i=0;i<N;i++)if(Math.random()<0.25)s[i]*=-1;
+resetHist();setStatus('','La memoria “cara” con 25 % de ruido. Pulsa Recordar.');drawAll();drawCap();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{drawAll();drawCap();});
+})();
+</script>
+</body>
+</html>
