@@ -1,13 +1,13 @@
 # %% [markdown]
-# # Semana 18 — Proyecto final: codificación corriente → frecuencia en el LIF
+# # Semana 18: Proyecto final: codificación corriente → frecuencia en el LIF
 #
-# **Pregunta:** ¿qué modelo simple predice mejor la frecuencia de disparo del LIF para corrientes
-# **más altas** que las vistas al ajustar (extrapolación)?
+# **Pregunta:** modelo simple que mejor predice la frecuencia de disparo del LIF para corrientes
+# **más altas** que las vistas al ajustar (extrapolación).
 #
 # ## Datos
 #
 # 31 corrientes de 0 a 3 nA; la frecuencia "observada" son los spikes en 500 ms / 0.5 s
-# (resolución 2 Hz). Partición **ordenada**: se ajusta con 0–2.1 nA y se evalúa en 2.2–3.0 nA.
+# (resolución 2 Hz). Partición **ordenada**: se ajusta con 0-2.1 nA y se evalúa en 2.2-3.0 nA.
 #
 # ## Modelos comparados
 #

@@ -78,6 +78,14 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-
   header,.theory,.row2{grid-template-columns:minmax(0,1fr)}
   .readout{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+@media (max-width:600px){
+  .wrap{padding:18px 12px 64px}
+  .panel,aside{padding:12px}
+  header{gap:12px;margin-bottom:16px}
+  .theory{margin-top:20px;gap:12px}
+  .theory .panel{padding:16px}
+  .themebtn{right:10px;bottom:10px}
+}
 </style>
 </head>
 <body>
@@ -206,7 +214,7 @@ function simAccuracy(p,n,s){const c=boundary(p);let ok=0;simulateTrials(p,n,s).f
 
 // ---------- Gráficas ----------
 function prep(cv){
-  const dpr=window.devicePixelRatio||1, w=cv.clientWidth, h=+cv.getAttribute('height');
+  const dpr=window.devicePixelRatio||1, w=cv.clientWidth, h=+(cv.dataset.h||(cv.dataset.h=cv.getAttribute('height')));
   if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px';}
   const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);return {c,w,h};
 }

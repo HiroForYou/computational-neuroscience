@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>fNIRS real: tapping de dedos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#ECEDEF; --surface:#F9FAFB; --ink:#1F2328; --muted:#5F6670; --grid:#D8DBE0; --axis:#A2A8B1;
+  --hbo:#C8382E; --hbr:#2C64B4; --left:#D9822B; --right:#7B4FB0; --control:#7D8590; --sig:#1F2328; --accent:#C8382E;
+  --contra:#C8382E; --ipsi:#7D8590; --skin:#F1E6DC; --focus:#2C64B4;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121417; --surface:#1A1D21; --ink:#E4E7EB; --muted:#9AA2AD; --grid:#2A2F35; --axis:#535B66;
+    --hbo:#F2786C; --hbr:#7FAEF2; --left:#F0A85A; --right:#B892EA; --control:#9AA2AD; --sig:#E4E7EB; --accent:#F2786C;
+    --contra:#F2786C; --ipsi:#9AA2AD; --skin:#262A30; --focus:#7FAEF2;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121417; --surface:#1A1D21; --ink:#E4E7EB; --muted:#9AA2AD; --grid:#2A2F35; --axis:#535B66;
+  --hbo:#F2786C; --hbr:#7FAEF2; --left:#F0A85A; --right:#B892EA; --control:#9AA2AD; --sig:#E4E7EB; --accent:#F2786C;
+  --contra:#F2786C; --ipsi:#9AA2AD; --skin:#262A30; --focus:#7FAEF2;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1280px;margin:0 auto;padding:28px 20px 60px}
+header{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px 40px;align-items:end;margin-bottom:26px}
+h1{font-family:"IBM Plex Serif",Georgia,serif;font-weight:500;font-size:clamp(30px,4.2vw,48px);line-height:1.05;margin:0;letter-spacing:-.01em}
+h1 small{display:block;font-size:.48em;color:var(--muted);font-weight:400;margin-top:8px;letter-spacing:0}
+header p{margin:0;color:var(--muted);max-width:62ch;font-size:15px}
+h2{font-family:"IBM Plex Serif",Georgia,serif;font-weight:500;font-size:20px;margin:0 0 4px}
+.layout{display:grid;grid-template-columns:290px minmax(0,1fr);gap:20px;align-items:start}
+aside{background:var(--surface);border-radius:14px;padding:18px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+.panel{background:var(--surface);border-radius:14px;padding:16px 16px 12px;min-width:0}
+.stack{display:grid;gap:14px;min-width:0}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:stretch}
+.cap{color:var(--muted);font-size:13.5px;margin:2px 0 10px;max-width:72ch;min-height:2.9em}
+canvas{display:block;width:100%;touch-action:pan-y}
+#cmap{cursor:pointer}
+fieldset{border:0;padding:0;margin:0 0 16px}
+legend{font-weight:600;font-size:14px;margin-bottom:8px;padding:0}
+select{width:100%;font:inherit;font-size:14px;padding:6px 8px;border-radius:8px;border:1px solid var(--grid);background:var(--bg);color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{font:inherit;font-size:13px;border:1px solid var(--grid);background:transparent;color:var(--ink);border-radius:999px;padding:5px 11px;cursor:pointer;transition:background .15s,color .15s}
+.chips button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.chips .sub{font-size:12px;color:var(--muted);width:100%;margin-top:2px}
+.ctl label{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:2px}
+.ctl output{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.check{display:flex;gap:8px;align-items:center;font-size:13.5px;color:var(--muted);margin-top:10px}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted);margin-bottom:6px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.legend s{display:inline-block;width:11px;height:11px;border-radius:50%;vertical-align:middle;margin-right:5px;text-decoration:none}
+.readout{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:8px 0 2px}
+.readout div{font-size:12.5px;color:var(--muted)}
+.readout b{display:block;font-size:19px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
+.note{font-size:13px;color:var(--muted)}
+.callout{border-left:3px solid var(--accent);padding:6px 10px;margin:8px 0 0;font-size:13.5px;background:var(--bg);border-radius:0 8px 8px 0}
+.player{display:flex;align-items:center;gap:12px;margin:4px 0 8px;flex-wrap:wrap}
+.player .btn{font:inherit;font-size:14px;font-weight:500;padding:7px 14px;border-radius:9px;border:0;cursor:pointer;background:var(--accent);color:var(--surface);min-width:118px}
+.player .time{flex:1;min-width:180px;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.player output{font-variant-numeric:tabular-nums;color:var(--ink);min-width:62px;text-align:right}
+.mode{display:inline-flex;border:1px solid var(--grid);border-radius:9px;overflow:hidden}
+.mode button{font:inherit;font-size:12.5px;border:0;background:transparent;color:var(--muted);padding:5px 10px;cursor:pointer}
+.mode button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.mapwrap{position:relative}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--surface);font-size:12.5px;line-height:1.45;padding:7px 9px;border-radius:8px;white-space:nowrap;transform:translate(-50%,calc(-100% - 14px));opacity:0;transition:opacity .12s}
+.tip.on{opacity:.95}
+.theory{margin-top:34px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+.theory .panel{padding:20px 22px}
+.theory p,.theory li{font-family:"IBM Plex Serif",Georgia,serif;font-size:16px;line-height:1.6;max-width:68ch}
+.theory ul{padding-left:20px;margin:8px 0}
+.eq{font-family:"IBM Plex Serif",Georgia,serif;font-size:16px;background:var(--bg);border-radius:10px;padding:12px 14px;margin:10px 0;overflow-x:auto;white-space:nowrap;line-height:1.9}
+.missing{background:var(--surface);border-radius:14px;padding:24px;font-size:15px}
+code{font-size:.92em}
+.themebtn{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);font:inherit;font-size:13px;border:1px solid var(--grid);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 12px;cursor:pointer}
+@media (max-width:980px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  aside{position:static}
+  header,.theory,.row2{grid-template-columns:minmax(0,1fr)}
+  .readout{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:600px){
+  .wrap{padding:18px 12px 64px}
+  .panel,aside{padding:12px}
+  header{gap:12px;margin-bottom:16px}
+  .theory{margin-top:20px;gap:12px}
+  .theory .panel{padding:16px}
+  .themebtn{right:10px;bottom:10px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>fNIRS con datos reales<small>Tapping de dedos: ¿se activa el hemisferio opuesto?</small></h1>
+  <p>Cinco personas golpean los dedos con la mano izquierda o derecha durante 5 s (30 veces cada una) mientras luz infrarroja mide la oxigenación de su corteza motora. Los datos ya están procesados con Cedalion: calidad, corrección de movimiento, hemoglobina y un GLM por canal. Elige qué comparar, pulsa <b>Reproducir</b> para ver cómo aparece la respuesta y toca o haz clic en un canal para estudiarlo.</p>
+</header>
+
+<div id="app" class="layout">
+<aside>
+  <fieldset>
+    <legend>Datos</legend>
+    <select id="subject" aria-label="Sujeto"></select>
+  </fieldset>
+  <fieldset>
+    <legend>Contraste</legend>
+    <div class="chips" id="contrasts">
+      <span class="sub">frente a la línea base</span>
+      <button data-c="Left" aria-pressed="true">Mano izquierda</button>
+      <button data-c="Right">Mano derecha</button>
+      <button data-c="Control">Control</button>
+      <span class="sub">frente a la condición Control</span>
+      <button data-c="LeftMinusControl">Izq. − Control</button>
+      <button data-c="RightMinusControl">Der. − Control</button>
+    </div>
+  </fieldset>
+  <fieldset>
+    <legend>Cromóforo</legend>
+    <div class="chips" id="chromos"><button data-h="HbO" aria-pressed="true">HbO</button><button data-h="HbR">HbR</button></div>
+  </fieldset>
+  <fieldset>
+    <legend>Exigencia estadística</legend>
+    <div class="ctl"><label for="q"><span>FDR (Benjamini–Hochberg) q ≤</span> <output id="o-q"></output></label><input id="q" type="range" min="0.001" max="0.2" step="0.001"></div>
+    <label class="check"><input type="checkbox" id="quality" checked> Atenuar canales con mala calidad</label>
+  </fieldset>
+  <p class="note" id="source"></p>
+</aside>
+
+<main class="stack">
+  <section class="panel">
+    <h2 id="t-map">Mapa de activación</h2>
+    <p class="cap" id="cap-map"></p>
+    <div class="player">
+      <button class="btn" id="play" aria-label="Reproducir la respuesta en el tiempo">▶ Reproducir</button>
+      <div class="mode" role="group" aria-label="Qué muestra el mapa"><button id="m-effect" aria-pressed="true">Efecto (4–10 s)</button><button id="m-time" aria-pressed="false">Respuesta en el tiempo</button></div>
+      <div class="time"><label for="t">t</label><input id="t" type="range" min="-2" max="15" step="0.1" aria-label="Tiempo desde el inicio del estímulo"><output id="o-t"></output></div>
+    </div>
+    <div class="mapwrap"><canvas id="cmap" height="360" aria-label="Mapa de canales sobre la cabeza"></canvas><div class="tip" id="tip" role="tooltip"></div></div>
+    <div class="readout">
+      <div>Canales significativos<b id="r-n">–</b></div>
+      <div>Contralaterales / ipsilaterales<b id="r-ci">–</b></div>
+      <div>LI por recuento<b id="r-li">–</b></div>
+      <div>LI por magnitud<b id="r-lim">–</b></div>
+    </div>
+    <p class="callout" id="callout" hidden></p>
+  </section>
+
+  <div class="row2">
+    <section class="panel">
+      <h2 id="t-hrf">Respuesta del canal</h2>
+      <p class="cap" id="cap-hrf"></p>
+      <div class="legend"><span><i style="background:var(--left)"></i>mano izquierda</span><span><i style="background:var(--right)"></i>mano derecha</span><span><i style="background:var(--control)"></i>control</span><span>- - - promedio por bloques</span></div>
+      <canvas id="chrf" height="260" aria-label="Respuesta hemodinámica del canal"></canvas>
+    </section>
+    <section class="panel">
+      <h2 id="t-hemi">Hemisferio contralateral frente a ipsilateral</h2>
+      <p class="cap" id="cap-hemi"></p>
+      <div class="legend"><span><i style="background:var(--contra)"></i>contralateral a la mano</span><span><i style="background:var(--ipsi)"></i>ipsilateral</span></div>
+      <canvas id="chemi" height="260" aria-label="Respuesta media por hemisferio"></canvas>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2>Serie temporal</h2>
+    <p class="cap" id="cap-ts">HbO y HbR del canal elegido durante 300 s, con los estímulos marcados. Así de ruidosa es la señal que el GLM descompone.</p>
+    <div class="legend"><span><i style="background:var(--hbo)"></i>HbO</span><span><i style="background:var(--hbr)"></i>HbR</span><span><s style="background:var(--left);border-radius:2px;opacity:.5"></s>izquierda</span><span><s style="background:var(--right);border-radius:2px;opacity:.5"></s>derecha</span><span><s style="background:var(--control);border-radius:2px;opacity:.5"></s>control</span></div>
+    <canvas id="cts" height="200" aria-label="Serie temporal del canal"></canvas>
+  </section>
+</main>
+</div>
+
+<section class="theory">
+  <div class="panel">
+    <h2>Qué se calculó</h2>
+    <p>Por sujeto: calidad de señal (SCI, PSP), densidad óptica, corrección de movimiento (TDDR + wavelet), ley de Beer–Lambert modificada (DPF = 6), filtro pasa-bajos a 0,5 Hz y remuestreo a 2 Hz. Después, un GLM por canal:</p>
+    <div class="eq">y(t) = Σ<sub>k,j</sub> β<sub>k,j</sub> (g<sub>j</sub> * s<sub>k</sub>)(t) + deriva coseno (&lt; 0,01 Hz) + β<sub>corto</sub> ȳ<sub>cortos</sub>(t) + ε(t)</div>
+    <p>con núcleos gaussianos g<sub>j</sub> para cada condición k, el promedio de los canales cortos como regresor de fisiología superficial y ruido autorregresivo (AR-IRLS). El <b>contraste</b> integra la respuesta estimada entre 4 y 10 s tras el inicio y se prueba con un test t por canal.</p>
+    <p>La <b>animación</b> muestra la respuesta estimada por el GLM, Σ<sub>j</sub> β<sub>k,j</sub> g<sub>j</sub>(t), en cada canal y en cada instante tras el inicio del estímulo: es una película de la HRF, no de los datos crudos.</p>
+    <p>El <b>grupo</b> usa los efectos de los 5 sujetos en cada canal y un test t de una muestra (n = 5): mucha menos potencia que dentro de un sujeto, pero responde a otra pregunta (¿se repite en personas distintas?).</p>
+    <div class="eq">LI = (contra − ipsi) / (contra + ipsi)</div>
+    <p class="note">LI por recuento usa los canales significativos de cada hemisferio; LI por magnitud, el efecto medio de cada hemisferio. Ambos valen +1 si todo es contralateral y 0 si es bilateral.</p>
+  </div>
+  <div class="panel">
+    <h2>Qué observar</h2>
+    <ul>
+      <li><b>La respuesta es lenta.</b> Reproduce la animación: durante los primeros 2–3 s tras el inicio casi no pasa nada; la HbO alcanza su máximo a los ~6–7 s, después de terminar el tapping (5 s).</li>
+      <li><b>Significativo no es lo mismo que lateralizado.</b> Con 30 ensayos, casi todos los canales pueden salir significativos para ambas manos; la lateralización aparece en la <i>magnitud</i>: compara las dos curvas del panel de hemisferios.</li>
+      <li><b>La trampa del control.</b> Compara “Mano izquierda” con “Izq. − Control”. Si la condición Control no es un reposo neutro, restarla cambia el mapa. Elegir el contraste es parte de la hipótesis.</li>
+      <li><b>El umbral cambia la historia.</b> Mueve q de 0,05 a 0,01: los mapas de un sujeto apenas cambian, los del grupo sí. Con n = 5, el grupo tiene poca potencia.</li>
+      <li><b>HbR.</b> En una activación típica la HbR baja mientras la HbO sube; cambia el cromóforo y fíjate en el signo.</li>
+      <li><b>Calidad.</b> Los canales atenuados tienen mal acoplamiento optodo-piel en buena parte del registro; sus resultados son menos fiables.</li>
+    </ul>
+    <p class="note" id="license"></p>
+  </div>
+</section>
+
+<button class="themebtn" id="theme" aria-label="Cambiar tema">Tema</button>
+
+<script src="data/fnirs-luke-tapping.js"></script>
+<script>
+(function(){
+"use strict";
+const D = window.FNIRS_DATA;
+const $ = id => document.getElementById(id);
+if(!D){
+  $("app").outerHTML='<div class="missing">No se encontró <code>interactive/data/fnirs-luke-tapping.js</code>. Genéralo con <code>extensions/fnirs-cedalion/export_luke_demo.py</code> (ver el README de la extensión).</div>';
+  return;
+}
+const fmt=(v,d=2)=>Number.isFinite(v)?(Math.round(v*10**d)/10**d).toLocaleString('es',{minimumFractionDigits:d,maximumFractionDigits:d}):'–';
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const SUBJECTS=Object.keys(D.subjects);
+const CONTRALATERAL={Left:"right",Right:"left",LeftMinusControl:"right",RightMinusControl:"left",Control:null};
+const CONTRAST_LABEL={Left:"mano izquierda vs línea base",Right:"mano derecha vs línea base",Control:"control vs línea base",LeftMinusControl:"mano izquierda − control",RightMinusControl:"mano derecha − control"};
+const HRF_TIME=D.group.hrf["Left_HbO"].time;
+let S={subject:"group",contrast:"Left",chromo:"HbO",q:0.05,quality:true,channel:null,mode:"effect",t:6};
+
+// ---------- Datos ----------
+function entry(){return S.subject==="group"?D.group:D.subjects[S.subject];}
+function bh(p){ // Benjamini-Hochberg adjusted q-values
+  const m=p.length, idx=p.map((v,i)=>[v,i]).sort((a,b)=>a[0]-b[0]), q=new Array(m);
+  let prev=1;for(let r=m-1;r>=0;r--){const [v,i]=idx[r];prev=Math.min(prev,v*m/(r+1));q[i]=prev;}
+  return q;
+}
+function quality(i){if(S.subject==="group"){const vals=SUBJECTS.map(s=>D.subjects[s].cleanFraction[i]);return vals.reduce((a,b)=>a+b,0)/vals.length;}return entry().cleanFraction[i];}
+function goodChannel(i){return !S.quality||quality(i)>=0.6;}
+function current(){
+  const e=entry(), st=e.stats[`${S.contrast}_${S.chromo}`], q=bh(st.p);
+  const sig=q.map(v=>v<=S.q), side=CONTRALATERAL[S.contrast];
+  const pos=st.effect.map(v=>S.chromo==="HbO"?v>0:v<0); // "activation": HbO up or HbR down
+  let contra=0,ipsi=0,sumC=0,sumI=0,nC=0,nI=0;
+  e.channels.forEach((c,i)=>{
+    const isC=side&&e.hemisphere[i]===side;
+    if(sig[i]&&pos[i]){isC?contra++:ipsi++;}
+    const mag=S.chromo==="HbO"?st.effect[i]:-st.effect[i];
+    if(isC){sumC+=mag;nC++;}else{sumI+=mag;nI++;}
+  });
+  const liCount=(contra+ipsi)?(contra-ipsi)/(contra+ipsi):NaN;
+  const mC=sumC/Math.max(1,nC), mI=sumI/Math.max(1,nI);
+  const liMag=side&&(Math.abs(mC)+Math.abs(mI))>0?(mC-mI)/(Math.abs(mC)+Math.abs(mI)):NaN;
+  return {e,st,q,sig,pos,contra,ipsi,liCount,liMag,side};
+}
+// GLM response (µM) of a channel for the current contrast at every HRF time point.
+function responseCurve(i){
+  const e=entry(), get=k=>e.hrf[`${k}_${S.chromo}`].mean[i].map(v=>v/1000);
+  if(S.contrast.endsWith("MinusControl")){const a=get(S.contrast.replace("MinusControl","")),b=get("Control");return a.map((v,j)=>v-b[j]);}
+  return get(S.contrast);
+}
+function valueAt(curve,t){const j=Math.max(0,Math.min(HRF_TIME.length-1,Math.round((t-HRF_TIME[0])/(HRF_TIME[1]-HRF_TIME[0]))));return curve[j];}
+function mapValues(){
+  const e=entry();
+  if(S.mode==="time")return e.channels.map((_,i)=>valueAt(responseCurve(i),S.t));
+  return current().st.effect.slice();
+}
+
+// ---------- Utilidades de dibujo ----------
+function prep(cv){
+  const dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=+(cv.dataset.h||(cv.dataset.h=cv.getAttribute('height')));
+  if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px';}
+  const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);return {c,w,h};
+}
+function ticks(a,b,n){const span=b-a,step0=span/n,mag=10**Math.floor(Math.log10(step0)),s=[1,2,5,10].map(f=>f*mag).find(f=>f>=step0);const out=[];for(let v=Math.ceil(a/s)*s;v<=b+1e-9;v+=s)out.push(+v.toFixed(6));return out;}
+function frame(g,xr,yr,o={}){
+  const {c,w,h}=g,pad={l:46,r:10,t:8,b:22,...(o.pad||{})};
+  const X=x=>pad.l+(x-xr[0])/(xr[1]-xr[0])*(w-pad.l-pad.r),Y=y=>h-pad.b-(y-yr[0])/(yr[1]-yr[0])*(h-pad.t-pad.b);
+  c.font='11px "IBM Plex Sans", system-ui, sans-serif';c.lineWidth=1;c.strokeStyle=css('--grid');c.fillStyle=css('--muted');
+  c.textAlign='right';c.textBaseline='middle';(o.yt||ticks(yr[0],yr[1],4)).forEach(v=>{const y=Math.round(Y(v))+.5;c.beginPath();c.moveTo(pad.l,y);c.lineTo(w-pad.r,y);c.stroke();c.fillText(fmt(v,Math.abs(v)<1&&v!==0?2:0),pad.l-6,y);});
+  c.textAlign='center';c.textBaseline='top';(o.xt||ticks(xr[0],xr[1],6)).forEach(v=>c.fillText(fmt(v,0),X(v),h-pad.b+5));
+  if(o.xl){c.textAlign='right';c.textBaseline='bottom';c.fillText(o.xl,w-pad.r,h-pad.b-3);}
+  if(o.yl){c.textAlign='left';c.textBaseline='top';c.fillText(o.yl,pad.l+4,pad.t+2);}
+  return {X,Y,pad};
+}
+function isDark(){const r=document.documentElement;return r.dataset.theme?r.dataset.theme==="dark":matchMedia('(prefers-color-scheme: dark)').matches;}
+function diverging(v,lim){ // blue - neutral - red
+  const t=Math.max(-1,Math.min(1,v/lim)), dark=isDark();
+  const mid=dark?[44,48,54]:[246,247,249], red=dark?[242,120,108]:[200,56,46], blue=dark?[127,174,242]:[44,100,180];
+  const target=t>=0?red:blue,a=Math.abs(t)**0.8;
+  return `rgb(${mid.map((m,i)=>Math.round(m+(target[i]-m)*a)).join(',')})`;
+}
+function cursor(g,f,t){const {c,h}=g;const x=f.X(t);c.strokeStyle=css('--ink');c.globalAlpha=.55;c.lineWidth=1.5;c.beginPath();c.moveTo(x,f.pad.t);c.lineTo(x,h-f.pad.b);c.stroke();c.globalAlpha=1;}
+
+// ---------- Mapa ----------
+let hit=[], shown=null, tween=null;
+function drawMap(values){
+  const R=current(), g=prep($('cmap')), c=g.c, e=R.e;
+  const ref=S.subject==="group"?D.subjects[SUBJECTS[0]]:e;
+  const pts=[...e.position,...Object.values(ref.optodes)];
+  const maxX=Math.max(...pts.map(p=>Math.abs(p[0])))*1.18;
+  const ys=pts.map(p=>p[1]), cy=(Math.max(...ys)+Math.min(...ys))/2;
+  const radiusY=Math.max(maxX*0.95,(Math.max(...ys)-Math.min(...ys))*0.8);
+  const top=g.w<560?46:0; // narrow screens: colour bar above the head instead of beside it
+  const scale=Math.min((g.w-80)/(2*maxX),(g.h-44-top)/(2*radiusY));
+  const midY=top+(g.h-top)/2;
+  const X=x=>g.w/2+x*scale, Y=y=>midY-(y-cy)*scale;
+  // head: ellipse, ears and nose
+  const rx=maxX*scale, ry=radiusY*scale;
+  c.fillStyle=css('--skin');c.strokeStyle=css('--axis');c.lineWidth=1.5;
+  c.beginPath();c.ellipse(g.w/2-rx-6,midY,9,22,0,0,7);c.fill();c.stroke();
+  c.beginPath();c.ellipse(g.w/2+rx+6,midY,9,22,0,0,7);c.fill();c.stroke();
+  c.beginPath();c.moveTo(g.w/2-14,midY-ry+3);c.lineTo(g.w/2,midY-ry-16);c.lineTo(g.w/2+14,midY-ry+3);c.closePath();c.fill();c.stroke();
+  c.beginPath();c.ellipse(g.w/2,midY,rx,ry,0,0,7);c.fill();c.stroke();
+  c.setLineDash([3,4]);c.strokeStyle=css('--axis');c.lineWidth=1;c.beginPath();c.moveTo(g.w/2,midY-ry);c.lineTo(g.w/2,midY+ry);c.stroke();c.setLineDash([]);
+  c.fillStyle=css('--muted');c.font='11px "IBM Plex Sans", system-ui';c.textAlign='left';c.textBaseline='bottom';c.fillText('izquierda',8,g.h-6);c.textAlign='right';c.fillText('derecha',g.w-8,g.h-6);
+  c.textAlign='left';c.textBaseline='middle';c.fillText('nariz',g.w/2+18,midY-ry-8);
+  // channel lines and optodes
+  c.strokeStyle=css('--grid');c.lineWidth=1;
+  (ref.longPairs||[]).forEach(([s,d])=>{const a=ref.optodes[s],b=ref.optodes[d];if(!a||!b)return;c.beginPath();c.moveTo(X(a[0]),Y(a[1]));c.lineTo(X(b[0]),Y(b[1]));c.stroke();});
+  Object.entries(ref.optodes).forEach(([lab,p])=>{c.fillStyle=lab[0]==='S'?css('--hbo'):css('--ink');c.globalAlpha=.5;c.fillRect(X(p[0])-2.5,Y(p[1])-2.5,5,5);c.globalAlpha=1;});
+  // channels
+  const lim=S.mode==="time"?timeLimit():Math.max(...R.st.effect.map(Math.abs))||1;
+  const rad=Math.max(9,Math.min(14,scale*7));
+  hit=[];
+  e.channels.forEach((ch,i)=>{
+    const [px,py]=e.position[i], x=X(px), y=Y(py);
+    c.globalAlpha=goodChannel(i)?1:0.28;
+    c.fillStyle=diverging(values[i],lim);c.beginPath();c.arc(x,y,rad,0,7);c.fill();
+    c.strokeStyle=css('--axis');c.lineWidth=0.8;c.stroke();
+    if(S.mode==="effect"&&R.sig[i]){c.strokeStyle=css('--sig');c.lineWidth=2.5;c.stroke();}
+    c.globalAlpha=1;
+    if(ch===S.channel){c.strokeStyle=css('--accent');c.lineWidth=2;c.beginPath();c.arc(x,y,rad+4,0,7);c.stroke();}
+    hit.push({x,y,r:rad+4,i});
+  });
+  // color bar
+  const bw=130,bx=top?(g.w-bw)/2:g.w-bw-14,by=top?4:14;for(let k=0;k<bw;k++){c.fillStyle=diverging((k/(bw-1)*2-1)*lim,lim);c.fillRect(bx+k,by,1.2,9);}
+  c.fillStyle=css('--muted');c.textBaseline='top';c.textAlign='center';
+  c.fillText(S.mode==="time"?`${S.chromo} (µM) en t = ${fmt(S.t,1)} s`:`efecto ${S.chromo} (µM·s)`,bx+bw/2,by+12);
+  c.textAlign='left';c.fillText(fmt(-lim,S.mode==="time"?2:1),bx,by+26);c.textAlign='right';c.fillText(fmt(lim,S.mode==="time"?2:1),bx+bw,by+26);
+  if(S.mode==="time"){c.textAlign='left';c.textBaseline='top';c.font='600 13px "IBM Plex Sans", system-ui';c.fillStyle=css('--ink');c.fillText(`t = ${fmt(S.t,1)} s ${S.t>=0&&S.t<=5?'· tapping':''}`,8,top?top-4:14);}
+}
+function timeLimit(){ // common colour scale over the whole animation
+  const e=entry();let m=0;e.channels.forEach((_,i)=>{if(goodChannel(i))responseCurve(i).forEach(v=>{m=Math.max(m,Math.abs(v));});});return m||0.01;
+}
+function renderMap(animate){
+  const target=mapValues();
+  if(!animate||!shown||shown.length!==target.length||reduceMotion){shown=target;drawMap(shown);return;}
+  const from=shown.slice(), start=performance.now(), dur=380;
+  cancelAnimationFrame(tween);
+  const step=now=>{const k=Math.min(1,(now-start)/dur),ease=1-(1-k)**3;shown=from.map((v,i)=>v+(target[i]-v)*ease);drawMap(shown);if(k<1)tween=requestAnimationFrame(step);};
+  tween=requestAnimationFrame(step);
+}
+
+// ---------- Curvas ----------
+function drawHRF(){
+  const g=prep($('chrf')),c=g.c,e=entry(),i=e.channels.indexOf(S.channel);
+  if(i<0)return;
+  const series=[["Left","--left"],["Right","--right"],["Control","--control"]];
+  let lo=0,hi=0;
+  series.forEach(([k])=>{const h=e.hrf[`${k}_${S.chromo}`];h.mean[i].forEach((v,t)=>{lo=Math.min(lo,(v-h.std[i][t])/1000);hi=Math.max(hi,(v+h.std[i][t])/1000);});
+    const b=e.blocks&&e.blocks[`${k}_${S.chromo}`];if(b)b.mean[i].forEach(v=>{lo=Math.min(lo,v/1000);hi=Math.max(hi,v/1000);});});
+  const padY=(hi-lo)*0.1||0.01;lo-=padY;hi+=padY;
+  const f=frame(g,[HRF_TIME[0],HRF_TIME[HRF_TIME.length-1]],[lo,hi],{xl:'s desde el inicio',yl:`${S.chromo} (µM)`});
+  c.fillStyle=css('--grid');c.globalAlpha=.45;c.fillRect(f.X(D.contrastWindow[0]),f.pad.t,f.X(D.contrastWindow[1])-f.X(D.contrastWindow[0]),g.h-f.pad.t-f.pad.b);c.globalAlpha=1;
+  c.fillStyle=css('--accent');c.globalAlpha=.25;c.fillRect(f.X(0),g.h-f.pad.b-5,f.X(5)-f.X(0),5);c.globalAlpha=1;
+  c.strokeStyle=css('--axis');c.beginPath();c.moveTo(f.X(0),f.pad.t);c.lineTo(f.X(0),g.h-f.pad.b);c.stroke();c.beginPath();c.moveTo(f.pad.l,f.Y(0));c.lineTo(g.w-f.pad.r,f.Y(0));c.stroke();
+  const focus=S.contrast.replace("MinusControl","");
+  series.forEach(([k,col])=>{
+    const h=e.hrf[`${k}_${S.chromo}`],m=h.mean[i].map(v=>v/1000),s=h.std[i].map(v=>v/1000);
+    const strong=k===focus||(S.contrast.endsWith("MinusControl")&&k==="Control");
+    c.fillStyle=css(col);c.globalAlpha=strong?0.18:0.07;c.beginPath();
+    HRF_TIME.forEach((t,j)=>c.lineTo(f.X(t),f.Y(m[j]+s[j])));for(let j=HRF_TIME.length-1;j>=0;j--)c.lineTo(f.X(HRF_TIME[j]),f.Y(m[j]-s[j]));c.fill();
+    c.globalAlpha=strong?1:0.45;c.strokeStyle=css(col);c.lineWidth=strong?2.2:1.4;c.beginPath();HRF_TIME.forEach((t,j)=>{const x=f.X(t),y=f.Y(m[j]);j?c.lineTo(x,y):c.moveTo(x,y);});c.stroke();
+    const b=e.blocks&&e.blocks[`${k}_${S.chromo}`];
+    if(b&&strong){c.setLineDash([5,4]);c.lineWidth=1.6;c.beginPath();D.subjects[SUBJECTS[0]].relativeTime.forEach((t,j)=>{const x=f.X(t),y=f.Y(b.mean[i][j]/1000);j?c.lineTo(x,y):c.moveTo(x,y);});c.stroke();c.setLineDash([]);}
+    if(strong&&S.mode==="time"){c.fillStyle=css(col);c.beginPath();c.arc(f.X(S.t),f.Y(valueAt(m,S.t)),5,0,7);c.fill();}
+    c.globalAlpha=1;
+  });
+  if(S.mode==="time")cursor(g,f,S.t);
+  const R=current(), q=R.q[i], p=R.st.p[i], eff=R.st.effect[i], cf=quality(i);
+  $('t-hrf').textContent=`Canal ${S.channel} · hemisferio ${e.hemisphere[i]==='right'?'derecho':'izquierdo'}`;
+  $('cap-hrf').textContent=`${CONTRAST_LABEL[S.contrast]}: efecto ${fmt(eff,2)} µM·s, p = ${p.toPrecision(2)}, q = ${q.toPrecision(2)}; tiempo limpio ${Math.round(cf*100)} %. Banda: ±1 EE${S.subject==='group'?' entre sujetos':''}; gris: ventana del contraste; barra: 5 s de tapping.`;
+}
+function drawHemispheres(){
+  const g=prep($('chemi')),c=g.c,e=entry(),R=current();
+  if(!R.side){c.fillStyle=css('--muted');c.font='13px "IBM Plex Sans", system-ui';c.textAlign='center';c.fillText('Elige un contraste de mano para comparar hemisferios.',g.w/2,g.h/2);$('cap-hemi').textContent='';return;}
+  const groups={contra:[],ipsi:[]};
+  e.channels.forEach((_,i)=>{if(!goodChannel(i))return;groups[e.hemisphere[i]===R.side?'contra':'ipsi'].push(responseCurve(i));});
+  const stats=Object.fromEntries(Object.entries(groups).map(([k,cs])=>{const n=cs.length;const m=HRF_TIME.map((_,j)=>cs.reduce((a,cv)=>a+cv[j],0)/Math.max(1,n));
+    const se=HRF_TIME.map((_,j)=>n>1?Math.sqrt(cs.reduce((a,cv)=>a+(cv[j]-m[j])**2,0)/(n-1)/n):0);return [k,{m,se,n}];}));
+  let lo=0,hi=0;Object.values(stats).forEach(s=>s.m.forEach((v,j)=>{lo=Math.min(lo,v-s.se[j]);hi=Math.max(hi,v+s.se[j]);}));
+  const padY=(hi-lo)*0.12||0.01;lo-=padY;hi+=padY;
+  const f=frame(g,[HRF_TIME[0],HRF_TIME[HRF_TIME.length-1]],[lo,hi],{xl:'s desde el inicio',yl:`${S.chromo} medio (µM)`});
+  c.fillStyle=css('--accent');c.globalAlpha=.25;c.fillRect(f.X(0),g.h-f.pad.b-5,f.X(5)-f.X(0),5);c.globalAlpha=1;
+  c.strokeStyle=css('--axis');c.beginPath();c.moveTo(f.pad.l,f.Y(0));c.lineTo(g.w-f.pad.r,f.Y(0));c.stroke();
+  [["ipsi","--ipsi"],["contra","--contra"]].forEach(([k,col])=>{const s=stats[k];
+    c.fillStyle=css(col);c.globalAlpha=.16;c.beginPath();HRF_TIME.forEach((t,j)=>c.lineTo(f.X(t),f.Y(s.m[j]+s.se[j])));for(let j=HRF_TIME.length-1;j>=0;j--)c.lineTo(f.X(HRF_TIME[j]),f.Y(s.m[j]-s.se[j]));c.fill();
+    c.globalAlpha=1;c.strokeStyle=css(col);c.lineWidth=2.2;c.beginPath();HRF_TIME.forEach((t,j)=>{const x=f.X(t),y=f.Y(s.m[j]);j?c.lineTo(x,y):c.moveTo(x,y);});c.stroke();
+    if(S.mode==="time"){c.fillStyle=css(col);c.beginPath();c.arc(f.X(S.t),f.Y(valueAt(s.m,S.t)),5,0,7);c.fill();}});
+  if(S.mode==="time")cursor(g,f,S.t);
+  const peak=k=>Math.max(...stats[k].m.map(v=>S.chromo==="HbO"?v:-v));
+  const ratio=peak('contra')/Math.max(1e-9,peak('ipsi'));
+  $('cap-hemi').textContent=`Media de ${stats.contra.n} canales contralaterales y ${stats.ipsi.n} ipsilaterales${S.quality?' con buena calidad':''} (± EE entre canales). Pico contralateral ${Number.isFinite(ratio)&&ratio>0?fmt(ratio,1)+' veces':'–'} el ipsilateral.`;
+}
+function drawTS(){
+  const g=prep($('cts')),c=g.c;
+  if(S.subject==="group"){c.fillStyle=css('--muted');c.font='13px "IBM Plex Sans", system-ui';c.textAlign='center';c.fillText('Elige un sujeto para ver su serie temporal.',g.w/2,g.h/2);return;}
+  const e=entry(),i=e.channels.indexOf(S.channel),v=e.viewer;if(i<0)return;
+  const n=v.HbO[i].length,t=Array.from({length:n},(_,k)=>v.t0+k/v.fs);
+  let lo=Infinity,hi=-Infinity;["HbO","HbR"].forEach(h=>v[h][i].forEach(x=>{lo=Math.min(lo,x/1000);hi=Math.max(hi,x/1000);}));
+  const pad=(hi-lo)*0.08;lo-=pad;hi+=pad;
+  const f=frame(g,[t[0],t[n-1]],[lo,hi],{xl:'tiempo (s)',yl:'µM'});
+  const col={Left:'--left',Right:'--right',Control:'--control'};
+  e.stim.forEach(([on,k])=>{c.fillStyle=css(col[k]);c.globalAlpha=.22;c.fillRect(f.X(on),f.pad.t,Math.max(2,f.X(on+5)-f.X(on)),g.h-f.pad.t-f.pad.b);c.globalAlpha=1;});
+  [["HbO","--hbo"],["HbR","--hbr"]].forEach(([h,cv])=>{c.strokeStyle=css(cv);c.lineWidth=1.3;c.beginPath();v[h][i].forEach((x,k)=>{const px=f.X(t[k]),py=f.Y(x/1000);k?c.lineTo(px,py):c.moveTo(px,py);});c.stroke();});
+}
+function updateText(){
+  const R=current();
+  $('o-q').textContent=fmt(S.q,3);$('o-t').textContent=`${fmt(S.t,1)} s`;$('t').value=S.t;
+  const who=S.subject==="group"?`grupo (n = ${SUBJECTS.length})`:S.subject.replace('sub-','sujeto ');
+  $('t-map').textContent=`${CONTRAST_LABEL[S.contrast][0].toUpperCase()+CONTRAST_LABEL[S.contrast].slice(1)} — ${who}`;
+  $('cap-map').textContent=S.mode==="time"
+    ?`Cada círculo es un canal largo. Color: respuesta estimada de ${S.chromo} en el instante t tras el inicio del estímulo (rojo = aumento). La escala de color es la misma durante toda la animación.`
+    :`Cada círculo es un canal largo. Color: efecto en ${S.chromo} entre ${D.contrastWindow[0]} y ${D.contrastWindow[1]} s tras el inicio (rojo = aumento); borde negro: significativo con q ≤ ${fmt(S.q,3)}.${S.subject==='group'?' Grupo: test t entre sujetos.':` Ensayos: ${R.e.trials.Left} izquierda, ${R.e.trials.Right} derecha, ${R.e.trials.Control} control.`}`;
+  $('r-n').textContent=`${R.sig.filter(Boolean).length} / ${R.e.channels.length}`;
+  $('r-ci').textContent=R.side?`${R.contra} / ${R.ipsi}`:'–';
+  $('r-li').textContent=R.side?fmt(R.liCount,2):'–';
+  $('r-lim').textContent=R.side?fmt(R.liMag,2):'–';
+  const call=$('callout');
+  if(S.contrast.endsWith("MinusControl")){
+    const base=S.contrast.replace("MinusControl",""), st=R.e.stats[`Control_${S.chromo}`];
+    const meanCtrl=st.effect.reduce((a,b)=>a+b,0)/st.effect.length;
+    call.hidden=false;call.textContent=`Restar el control también resta su propia respuesta: en ${S.chromo}, la condición Control tiene un efecto medio de ${fmt(meanCtrl,2)} µM·s frente a la línea base. Compara con “${base==='Left'?'Mano izquierda':'Mano derecha'}”.`;
+  }else if(S.contrast==="Control"){call.hidden=false;call.textContent="La condición Control no implica movimiento. Si aquí aparecen efectos, no es un reposo neutro y restarla a las demás condiciones las distorsiona.";}
+  else call.hidden=true;
+}
+function chooseChannel(){
+  const e=entry();
+  if(S.channel&&e.channels.indexOf(S.channel)>=0)return;
+  const R=current();let best=0,bv=-Infinity;
+  R.st.effect.forEach((v,i)=>{const m=(S.chromo==="HbO"?v:-v)-(quality(i)<0.6?1e9:0);if(m>bv){bv=m;best=i;}});
+  S.channel=e.channels[best];
+}
+function drawAll(animate){
+  chooseChannel();updateText();renderMap(animate);drawHRF();drawHemispheres();drawTS();
+  try{history.replaceState(null,"",`#subject=${S.subject}&contrast=${S.contrast}&chromo=${S.chromo}&channel=${S.channel}`);}catch(err){}
+}
+function drawTimeFrame(){updateText();shown=mapValues();drawMap(shown);drawHRF();drawHemispheres();}
+
+// ---------- Animación ----------
+let playing=false, paused=false, raf=0;
+function setMode(mode){S.mode=mode;$('m-effect').setAttribute('aria-pressed',mode==="effect");$('m-time').setAttribute('aria-pressed',mode==="time");}
+function play(){
+  if(playing){stop();paused=true;$('play').textContent='▶ Continuar';return;}
+  // Start from the beginning unless resuming a pause mid-way.
+  if(!paused||S.t>=HRF_TIME[HRF_TIME.length-1]-0.05)S.t=HRF_TIME[0];
+  paused=false;setMode("time");playing=true;$('play').textContent='❚❚ Pausa';
+  if(reduceMotion){S.t=7;drawTimeFrame();stop();return;}
+  let last=performance.now();
+  const speed=2.8; // seconds of response per second of animation
+  const tick=now=>{S.t=Math.min(HRF_TIME[HRF_TIME.length-1],S.t+(now-last)/1000*speed);last=now;drawTimeFrame();
+    if(S.t<HRF_TIME[HRF_TIME.length-1]&&playing)raf=requestAnimationFrame(tick);else stop();};
+  raf=requestAnimationFrame(tick);
+}
+function stop(){playing=false;cancelAnimationFrame(raf);$('play').textContent='▶ Reproducir';}
+
+// ---------- Controles ----------
+function readHash(){
+  const h=new URLSearchParams(location.hash.slice(1));
+  if(h.get("subject")&&(h.get("subject")==="group"||D.subjects[h.get("subject")]))S.subject=h.get("subject");
+  if(h.get("contrast")&&CONTRAST_LABEL[h.get("contrast")])S.contrast=h.get("contrast");
+  if(["HbO","HbR"].includes(h.get("chromo")))S.chromo=h.get("chromo");
+  if(h.get("channel"))S.channel=h.get("channel");
+  if(h.get("t")){S.t=Math.max(-2,Math.min(15,+h.get("t")));setMode("time");}
+  document.querySelectorAll('#contrasts button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.c===S.contrast));
+  document.querySelectorAll('#chromos button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.h===S.chromo));
+}
+const sel=$('subject');
+sel.innerHTML=`<option value="group">Grupo (5 sujetos)</option>`+SUBJECTS.map(s=>`<option value="${s}">${s.replace('sub-','Sujeto ')}</option>`).join('');
+readHash();
+sel.value=S.subject;sel.addEventListener('change',()=>{S.subject=sel.value;drawAll(true);});
+document.querySelectorAll('#contrasts button').forEach(b=>b.addEventListener('click',()=>{S.contrast=b.dataset.c;document.querySelectorAll('#contrasts button').forEach(x=>x.setAttribute('aria-pressed',x===b));S.channel=null;drawAll(true);}));
+document.querySelectorAll('#chromos button').forEach(b=>b.addEventListener('click',()=>{S.chromo=b.dataset.h;document.querySelectorAll('#chromos button').forEach(x=>x.setAttribute('aria-pressed',x===b));drawAll(true);}));
+$('q').value=S.q;$('q').addEventListener('input',e=>{S.q=+e.target.value;drawAll(false);});
+$('quality').addEventListener('change',e=>{S.quality=e.target.checked;drawAll(false);});
+$('play').addEventListener('click',play);
+$('m-effect').addEventListener('click',()=>{stop();paused=false;setMode("effect");drawAll(true);});
+$('m-time').addEventListener('click',()=>{setMode("time");drawAll(true);});
+$('t').addEventListener('input',e=>{stop();paused=false;S.t=+e.target.value;setMode("time");drawTimeFrame();});
+const cmap=$('cmap'), tip=$('tip');
+function hitAt(ev){const r=cmap.getBoundingClientRect(),x=ev.clientX-r.left,y=ev.clientY-r.top;return hit.find(o=>Math.hypot(o.x-x,o.y-y)<=o.r);}
+cmap.addEventListener('pointerdown',ev=>{const h=hitAt(ev);if(h){S.channel=entry().channels[h.i];drawAll(false);if(ev.pointerType!=='mouse')showTip(ev);}else tip.classList.remove('on');});
+cmap.addEventListener('pointermove',showTip);
+function showTip(ev){
+  const h=hitAt(ev);if(!h){tip.classList.remove('on');return;}
+  const e=entry(),R=current(),i=h.i;
+  const now=S.mode==="time"?`<br>${S.chromo} en t = ${fmt(S.t,1)} s: ${fmt(valueAt(responseCurve(i),S.t),3)} µM`:'';
+  tip.innerHTML=`<b>${e.channels[i]}</b> · hemisferio ${e.hemisphere[i]==='right'?'derecho':'izquierdo'}<br>efecto ${fmt(R.st.effect[i],2)} µM·s · q = ${R.q[i].toPrecision(2)}${R.sig[i]?' ✓':''}<br>tiempo limpio ${Math.round(quality(i)*100)} %${now}`;
+  tip.style.left=Math.max(110,Math.min(cmap.clientWidth-110,h.x))+'px';tip.style.top=h.y+'px';tip.classList.add('on');
+}
+cmap.addEventListener('pointerleave',()=>tip.classList.remove('on'));
+const src=D.source;
+$('source').innerHTML=`Datos: ${src.authors}, <i>${src.title}</i>, doi:<a href="https://doi.org/${src.doi}">${src.doi}</a>. Procesado con ${src.processedWith}.`;
+$('license').innerHTML=`Fuente: <a href="${src.url}">${src.url}</a>. ${src.license} Los resultados son de una demostración educativa, no un análisis publicado.`;
+let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>drawAll(false),80);});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>drawAll(false));
+$('theme').addEventListener('click',()=>{const r=document.documentElement;const dark=isDark();r.dataset.theme=dark?'light':'dark';try{localStorage.setItem('fnirs-theme',r.dataset.theme);}catch(e){}drawAll(false);});
+try{const t=localStorage.getItem('fnirs-theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(!playing)drawAll(false);});
+const autoplay=new URLSearchParams(location.hash.slice(1)).get("play")==="1"; // read before drawAll rewrites the hash
+drawAll(false);
+if(autoplay)play();
+})();
+</script>
+</body>
+</html>

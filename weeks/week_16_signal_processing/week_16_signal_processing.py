@@ -1,5 +1,5 @@
 # %% [markdown]
-# # Semana 16 — Procesamiento de señales neuronales
+# # Semana 16: Procesamiento de señales neuronales
 #
 # **Objetivo:** analizar una señal ruidosa en el dominio del tiempo y de la frecuencia, y predecir
 # cuánto atenúa un filtro cada componente.

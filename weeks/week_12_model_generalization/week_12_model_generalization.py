@@ -1,5 +1,5 @@
 # %% [markdown]
-# # Semana 12 — Ajuste de modelos y generalización
+# # Semana 12: Ajuste de modelos y generalización
 #
 # **Objetivo:** comparar modelos por su error en datos **no usados** para ajustarlos, y ver por qué
 # el error de entrenamiento engaña.

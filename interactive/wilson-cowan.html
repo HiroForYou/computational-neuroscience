@@ -43,7 +43,7 @@ aside{background:var(--surface);border-radius:14px;padding:18px;position:sticky;
 .stack{display:grid;gap:14px}
 .row2{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px;align-items:start}
 .cap{color:var(--muted);font-size:13.5px;margin:2px 0 10px;max-width:72ch}
-canvas{display:block;width:100%;touch-action:none}
+canvas{display:block;width:100%;touch-action:pan-y}
 #cp,#cb{cursor:crosshair}
 .presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
 .presets button{font:inherit;font-size:13px;border:1px solid var(--grid);background:transparent;color:var(--ink);border-radius:999px;padding:5px 11px;cursor:pointer}
@@ -77,6 +77,14 @@ th{font-weight:500;color:var(--muted);font-size:12.5px}
   .layout{grid-template-columns:minmax(0,1fr)}
   aside{position:static}
   header,.theory,.row2{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:600px){
+  .wrap{padding:18px 12px 64px}
+  .panel,aside{padding:12px}
+  header{gap:12px;margin-bottom:16px}
+  .theory{margin-top:20px;gap:12px}
+  .theory .panel{padding:16px}
+  .themebtn{right:10px;bottom:10px}
 }
 </style>
 </head>
@@ -227,7 +235,7 @@ function oscillation(tr){
 
 // ---------- Gráficas ----------
 function prep(cv,square){
-  const dpr=window.devicePixelRatio||1, w=cv.clientWidth, h=square?Math.min(w,+cv.getAttribute('height')):+cv.getAttribute('height');
+  const dpr=window.devicePixelRatio||1, w=cv.clientWidth, h=square?Math.min(w,+(cv.dataset.h||(cv.dataset.h=cv.getAttribute('height')))):+(cv.dataset.h||(cv.dataset.h=cv.getAttribute('height')));
   if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px';}
   const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);return {c,w,h};
 }

@@ -1,12 +1,12 @@
 # %% [markdown]
-# # Semana 11 — Diseño de experimentos e hipótesis
+# # Semana 11: Diseño de experimentos e hipótesis
 #
 # **Objetivo:** escribir el plan **antes** de correr el experimento, con una predicción
 # cuantitativa que el resultado pueda refutar.
 #
 # ## Pregunta e hipótesis
 #
-# *¿Cómo afecta una corriente constante a la frecuencia de disparo del LIF de la semana 3?*
+# Efecto de una corriente constante sobre la frecuencia de disparo del LIF de la semana 3.
 #
 # - **H1 (cuantitativa):** no hay spikes por debajo de la reobase
 #   $I_\text{rh} = (V_\text{th} - V_\text{rest})/R = 1.5$ nA, y por encima la frecuencia sigue

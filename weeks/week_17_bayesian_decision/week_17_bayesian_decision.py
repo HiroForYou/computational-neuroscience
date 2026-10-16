@@ -1,5 +1,5 @@
 # %% [markdown]
-# # Semana 17 — Especialización: decisión sensorial bayesiana
+# # Semana 17: Especialización: decisión sensorial bayesiana
 #
 # **Objetivo:** derivar la regla de decisión óptima para una tarea de dos alternativas con
 # observaciones ruidosas, y comparar su precisión simulada con la teórica.

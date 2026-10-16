@@ -51,7 +51,8 @@ button{font:inherit}
 .btn.ghost:hover{border-color:var(--axis)}
 button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .ctls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 16px;margin-top:16px}
-.ctl label{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.ctl label{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--muted)}
+.ctl label output{text-align:right}
 .ctl output{color:var(--ink);font-variant-numeric:tabular-nums}
 input[type=range]{width:100%;accent-color:var(--on)}
 .seg{display:inline-flex;border:1px solid var(--grid);border-radius:9px;overflow:hidden}
@@ -86,6 +87,14 @@ canvas.plot{display:block;width:100%}
 .note{font-size:13px;color:var(--muted)}
 .themebtn{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);border:1px solid var(--grid);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:13px}
 @media (max-width:920px){.main,header,.theory,.wgrid{grid-template-columns:minmax(0,1fr)}.ctls{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+@media (max-width:600px){
+  .wrap{padding:18px 12px 64px}
+  .panel,aside{padding:12px}
+  header{gap:12px;margin-bottom:16px}
+  .theory{margin-top:20px;gap:12px}
+  .theory .panel{padding:16px}
+  .themebtn{right:10px;bottom:10px}
+}
 </style>
 </head>
 <body>

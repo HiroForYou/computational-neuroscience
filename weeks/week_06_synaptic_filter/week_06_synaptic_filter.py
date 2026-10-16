@@ -1,5 +1,5 @@
 # %% [markdown]
-# # Semana 6 — Sinapsis y sistemas lineales
+# # Semana 6: Sinapsis y sistemas lineales
 #
 # **Objetivo:** ver una sinapsis como un filtro lineal de primer orden y relacionar su constante
 # temporal con la integración (suma temporal) de spikes de entrada.
@@ -18,7 +18,7 @@
 # **Suma temporal:** si los spikes llegan separados menos que $\tau_s$, la respuesta no alcanza a
 # decaer y se acumula. Se comparan $\tau_s = 2$ ms (rápida, tipo AMPA) y $\tau_s = 10$ ms (lenta).
 #
-# Entrada: una ráfaga de 4 spikes cada 3 ms (10–19 ms) y dos spikes aislados (50 y 80 ms).
+# Entrada: una ráfaga de 4 spikes cada 3 ms (10-19 ms) y dos spikes aislados (50 y 80 ms).
 
 # %%
 import numpy as np
@@ -91,5 +91,5 @@ print({f"tau={tau:g} ms": f"burst peak {response[burst].max():.2f}" for tau, res
 #   una corta detecta coincidencias precisas.
 # - Es un modelo lineal: no incluye saturación de receptores, depresión ni facilitación sináptica.
 #
-# **Para tu entrega:** ¿qué intervalo entre spikes hace que el pico con $\tau_s = 10$ ms llegue a
-# 1.5? Predícelo con $1 + e^{-\Delta/\tau_s}$ y compruébalo.
+# **Para tu entrega:** predice con $1 + e^{-\Delta/\tau_s}$ el intervalo entre spikes que lleva el pico
+# a 1.5 con $\tau_s = 10$ ms, y compruébalo.

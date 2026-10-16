@@ -1,5 +1,5 @@
 # %% [markdown]
-# # Semana 1 — Python científico y reproducibilidad
+# # Semana 1: Python científico y reproducibilidad
 #
 # **Objetivo:** generar una figura que cualquiera pueda reproducir exactamente: mismos datos,
 # mismos parámetros y misma semilla aleatoria.
@@ -84,5 +84,5 @@ print(f"Same seed reproduces data: True; residual SD = {estimated_sd:.3f} (expec
 # ## Para tu entrega
 #
 # - Cambia la semilla y comprueba que la figura cambia, pero no su descripción estadística.
-# - ¿Cuántos puntos necesitas para estimar $\sigma$ con un error menor a 0.005?
+# - Calcula cuántos puntos hacen falta para estimar $\sigma$ con un error menor a 0.005.
 # - Registra en tu README: comando de ejecución, versión de Python, semilla y parámetros.

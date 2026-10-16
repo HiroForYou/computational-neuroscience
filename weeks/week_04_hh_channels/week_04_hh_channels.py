@@ -1,5 +1,5 @@
 # %% [markdown]
-# # Semana 4 — Hodgkin–Huxley: ecuaciones y canales
+# # Semana 4: Hodgkin-Huxley: ecuaciones y canales
 #
 # **Objetivo:** relacionar cada corriente iónica con una fase del potencial de acción y
 # predecir qué ocurre al bloquear parcialmente Na⁺ o K⁺.

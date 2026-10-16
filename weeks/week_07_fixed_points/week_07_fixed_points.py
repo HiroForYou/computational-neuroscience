@@ -1,5 +1,5 @@
 # %% [markdown]
-# # Semana 7 — Puntos fijos, estabilidad y retratos de fase
+# # Semana 7: Puntos fijos, estabilidad y retratos de fase
 #
 # **Objetivo:** clasificar un punto fijo a partir de los autovalores de la matriz del sistema y
 # reconocer esa clasificación en el retrato de fase.
@@ -115,7 +115,7 @@ for name, matrix in systems.items():
 #
 # - La parte imaginaria de $\lambda$ fija la frecuencia de giro ($|\text{Im}\,\lambda| = 2$ rad por
 #   unidad de tiempo) y la parte real la velocidad de convergencia o divergencia.
-# - En sistemas no lineales (HH, Wilson–Cowan) se aplica el mismo análisis a la **linealización**
+# - En sistemas no lineales (HH, Wilson-Cowan) se aplica el mismo análisis a la **linealización**
 #   (jacobiano) alrededor de cada punto fijo; solo es válido localmente.
 #
 # **Para tu entrega:** encuentra una matriz con un nodo estable y otra con un foco inestable, y

@@ -44,6 +44,8 @@ Desktop.ini
 data/
 *.snirf
 *.nwb
+# Exception: derived data for interactive/fnirs.html (open dataset, needed by GitHub Pages)
+!interactive/data/
 
 # GitHub Pages build
 _site/

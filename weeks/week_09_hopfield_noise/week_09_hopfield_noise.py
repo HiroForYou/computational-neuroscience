@@ -1,5 +1,5 @@
 # %% [markdown]
-# # Semana 9 — Hopfield: memoria asociativa, ruido y capacidad
+# # Semana 9: Hopfield: memoria asociativa, ruido y capacidad
 #
 # **Objetivo:** medir cuánto ruido tolera una red de Hopfield al recuperar un patrón y cuántos
 # patrones puede guardar antes de fallar.
@@ -122,5 +122,5 @@ print(f"Exact recall: {below:.0%} for P/N <= 0.06, {above:.0%} for P/N >= 0.2")
 #   exacta colapsa antes de la capacidad teórica (definida para $N \to \infty$ y error pequeño).
 # - Los patrones aleatorios son el mejor caso; patrones correlacionados reducen la capacidad.
 #
-# **Para tu entrega:** registra también los fallos: ¿a qué estado converge la red cuando no
-# recupera el patrón? Compara su solapamiento con los demás patrones guardados.
+# **Para tu entrega:** registra también los fallos, el estado al que converge la red cuando no
+# recupera el patrón y su solapamiento con los demás patrones guardados.

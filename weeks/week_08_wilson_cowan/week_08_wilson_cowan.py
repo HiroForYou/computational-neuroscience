@@ -1,5 +1,5 @@
 # %% [markdown]
-# # Semana 8 — Dinámica de poblaciones: modelo de Wilson–Cowan
+# # Semana 8: Dinámica de poblaciones: modelo de Wilson-Cowan
 #
 # **Objetivo:** ver cómo una población excitatoria (E) y una inhibitoria (I) acopladas pasan de un
 # estado estable a una oscilación al cambiar solo la entrada externa.

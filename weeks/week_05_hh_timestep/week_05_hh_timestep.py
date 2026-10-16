@@ -1,7 +1,7 @@
 # %% [markdown]
-# # Semana 5 — Simulación HH y convergencia numérica
+# # Semana 5: Simulación HH y convergencia numérica
 #
-# **Objetivo:** decidir qué paso temporal es suficiente para simular Hodgkin–Huxley,
+# **Objetivo:** decidir qué paso temporal es suficiente para simular Hodgkin-Huxley,
 # comparando contra una simulación de referencia con un paso mucho más fino.
 #
 # ## Método
@@ -51,7 +51,7 @@ order = np.polyfit(np.log(STEPS), np.log(rmse), 1)[0]
 # ## Figura
 #
 # Arriba: voltaje con cada paso (las curvas casi se superponen). Centro: diferencia respecto a la
-# referencia, que se concentra en la subida del spike. Abajo: RMSE frente a $\Delta t$ (log–log).
+# referencia, que se concentra en la subida del spike. Abajo: RMSE frente a $\Delta t$ (log-log).
 
 # %%
 figure, axes = plt.subplots(3, 1, figsize=(8, 9))
@@ -61,7 +61,7 @@ for step, result in results.items():
     axes[1].plot(result.time_ms, differences[step], label=f"dt={step:g}")
 axes[0].set(xlabel="Time (ms)", ylabel="Voltage (mV)", title="HH time-step convergence")
 axes[0].legend()
-axes[1].set(xlabel="Time (ms)", ylabel="Reference − model (mV)", xlim=(5, 12), title="Error concentrates on the upstroke (zoom 5–12 ms)")
+axes[1].set(xlabel="Time (ms)", ylabel="Reference − model (mV)", xlim=(5, 12), title="Error concentrates on the upstroke (zoom 5-12 ms)")
 axes[1].legend()
 axes[2].loglog(STEPS, rmse, "o-", label="RMSE")
 axes[2].loglog(STEPS, rmse[-1] * STEPS / STEPS[-1], "k:", label="Slope 1 reference")

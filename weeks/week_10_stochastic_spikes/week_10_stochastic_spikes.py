@@ -1,5 +1,5 @@
 # %% [markdown]
-# # Semana 10 — Probabilidad y procesos estocásticos: trenes de spikes Poisson
+# # Semana 10: Probabilidad y procesos estocásticos: trenes de spikes Poisson
 #
 # **Objetivo:** distinguir un tren de spikes regular de uno Poisson con la misma tasa media, y
 # cuantificar la variabilidad entre repeticiones.

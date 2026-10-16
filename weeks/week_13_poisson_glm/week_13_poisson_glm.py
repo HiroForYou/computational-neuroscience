@@ -1,5 +1,5 @@
 # %% [markdown]
-# # Semana 13 — GLM de Poisson para conteos de spikes
+# # Semana 13: GLM de Poisson para conteos de spikes
 #
 # **Objetivo:** ajustar un modelo de conteos con enlace logarítmico y comprobar que recupera los
 # parámetros con los que se generaron los datos.
@@ -15,7 +15,7 @@
 #
 # $$\ell(\boldsymbol\beta) = \sum_t \big(y_t \log\lambda_t - \lambda_t - \log y_t!\big)$$
 #
-# (el paquete usa Newton–Raphson). Parámetros verdaderos: $\beta_0 = 0.4$, $\beta_1 = 0.7$;
+# (el paquete usa Newton-Raphson). Parámetros verdaderos: $\beta_0 = 0.4$, $\beta_1 = 0.7$;
 # 180 intervalos con estímulos entre −1.5 y 1.5.
 
 # %%

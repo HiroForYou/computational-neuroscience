@@ -1,5 +1,5 @@
 # %% [markdown]
-# # Semana 15 — PCA y actividad poblacional
+# # Semana 15: PCA y actividad poblacional
 #
 # **Objetivo:** reducir la actividad de muchas neuronas a pocas dimensiones y comprobar si esas
 # dimensiones recuperan la estructura que generó los datos.
@@ -42,7 +42,7 @@ scores = pca_all.transform(activity)[:, :2]
 # %% [markdown]
 # ## Figura
 #
-# Izquierda: proyección en PC1–PC2 coloreada por condición. Derecha: varianza explicada por cada
+# Izquierda: proyección en PC1-PC2 coloreada por condición. Derecha: varianza explicada por cada
 # componente (*scree plot*).
 
 # %%

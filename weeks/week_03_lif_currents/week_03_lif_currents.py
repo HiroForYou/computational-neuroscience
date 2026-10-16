@@ -1,5 +1,5 @@
 # %% [markdown]
-# # Semana 3 — Neurona leaky integrate-and-fire (LIF)
+# # Semana 3: Neurona leaky integrate-and-fire (LIF)
 #
 # **Objetivo:** relacionar los parámetros de membrana con la corriente mínima para disparar
 # (reobase) y con la frecuencia de disparo.
@@ -56,7 +56,7 @@ theory = lif_firing_rate(sweep)
 #
 # Arriba: voltaje para una corriente subumbral (1 nA) y dos supraumbrales (2 y 3 nA). Los
 # spikes se dibujan como líneas verticales (el modelo LIF no genera la forma del potencial de
-# acción, solo el instante). Abajo: curva f–I simulada frente a la fórmula teórica.
+# acción, solo el instante). Abajo: curva f-I simulada frente a la fórmula teórica.
 
 # %%
 figure, axes = plt.subplots(2, 1, figsize=(8, 7))
@@ -70,7 +70,7 @@ axes[0].legend(loc="lower right", fontsize=8)
 axes[1].plot(sweep, theory, "k-", label="Theory")
 axes[1].plot(sweep, simulated, "o", markersize=4, label="Simulation (dt=0.1 ms)")
 axes[1].axvline(RHEOBASE_NA, color="grey", linestyle=":", label=f"Rheobase {RHEOBASE_NA:g} nA")
-axes[1].set(xlabel="Current (nA)", ylabel="Firing rate (spikes/s)", title="f–I curve")
+axes[1].set(xlabel="Current (nA)", ylabel="Firing rate (spikes/s)", title="f-I curve")
 axes[1].legend()
 save_figure(WEEK, figure, "lif_current_response.png")
 save_data(WEEK, "lif_current_response.npz", current_na=sweep, simulated_rate_hz=simulated, theoretical_rate_hz=theory)

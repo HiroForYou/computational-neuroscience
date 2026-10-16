@@ -1,5 +1,5 @@
 # %% [markdown]
-# # Semana 14 — Codificación, decodificación y validación cruzada
+# # Semana 14: Codificación, decodificación y validación cruzada
 #
 # **Objetivo:** construir un decodificador que lea el estímulo desde la actividad de una población,
 # evaluándolo solo con datos no usados en su ajuste.
@@ -102,4 +102,4 @@ print(f"RMSE: decoder 5-fold {model_rmse:.3f}, in-sample {in_sample_rmse:.3f}, m
 # - Para evitar fuga de información, cualquier preprocesamiento (normalizar, elegir neuronas)
 #   debe ajustarse **dentro** de cada partición de entrenamiento.
 #
-# **Para tu entrega:** añade 4 neuronas más y compara el RMSE fuera de muestra; ¿cuándo deja de mejorar?
+# **Para tu entrega:** añade 4 neuronas más, compara el RMSE fuera de muestra e identifica cuándo deja de mejorar.

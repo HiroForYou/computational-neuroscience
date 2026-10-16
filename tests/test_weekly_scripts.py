@@ -62,7 +62,9 @@ def test_notebooks_match_their_source_scripts() -> None:
     from convert_to_notebooks import build_notebook
 
     # Extension notebooks are checked for sync too, but never executed here (they need their own environment).
-    scripts = sorted(WEEKS.glob("week_*/week_*.py")) + sorted((ROOT / "extensions").glob("*/*.py"))
+    extension_notebooks = [path for path in sorted((ROOT / "extensions").glob("*/*.py"))
+                           if path.read_text(encoding="utf-8").startswith("# %%")]  # skip helper scripts
+    scripts = sorted(WEEKS.glob("week_*/week_*.py")) + extension_notebooks
     for script in scripts:
         notebook = script.with_suffix(".ipynb")
         assert notebook.exists(), f"missing {notebook.name} next to {script.name}"

@@ -1,5 +1,5 @@
 # %% [markdown]
-# # Semana 2 — Matemáticas para modelos: Euler frente a la solución analítica
+# # Semana 2: Matemáticas para modelos: Euler frente a la solución analítica
 #
 # **Objetivo:** entender que una simulación es una *aproximación* de una ecuación diferencial y
 # medir cómo depende su error del paso temporal $\Delta t$.
@@ -15,7 +15,7 @@
 # $$V_{k+1} = V_k + \Delta t \left(-\frac{V_k}{\tau}\right) = V_k \left(1 - \frac{\Delta t}{\tau}\right)$$
 #
 # Euler es un método de **primer orden**: el error global es proporcional a $\Delta t$.
-# En escala log–log, el error frente a $\Delta t$ debe ser una recta de pendiente ≈ 1.
+# En escala log-log, el error frente a $\Delta t$ debe ser una recta de pendiente ≈ 1.
 #
 # Parámetros: $\tau = 5$ (unidades arbitrarias de tiempo), $V_0 = 1$, duración 20.
 
@@ -54,7 +54,7 @@ order = np.polyfit(np.log(STEPS), np.log(max_errors), 1)[0]
 # ## Figura
 #
 # Izquierda: tres pasos de Euler frente a la solución exacta (línea negra discontinua, dibujada
-# encima). Derecha: error máximo frente a $\Delta t$ en escala log–log, con la pendiente ajustada.
+# encima). Derecha: error máximo frente a $\Delta t$ en escala log-log, con la pendiente ajustada.
 
 # %%
 time_fine = np.linspace(0.0, DURATION, 1001)
@@ -78,7 +78,7 @@ save_data(WEEK, "euler_convergence.npz", steps=STEPS, max_errors=max_errors, tim
 # ## Validación
 #
 # - El error debe disminuir de forma monótona al reducir $\Delta t$.
-# - La pendiente log–log debe estar cerca de 1 (método de primer orden).
+# - La pendiente log-log debe estar cerca de 1 (método de primer orden).
 # - Con $\Delta t > 2\tau$ Euler se vuelve inestable (factor $|1 - \Delta t/\tau| > 1$); aquí
 #   todos los pasos cumplen $\Delta t < 2\tau$.
 
@@ -93,4 +93,4 @@ print(f"Fitted convergence order: {order:.3f}")
 # ## Para tu entrega
 #
 # - Anota la ecuación, unidades y parámetros, y explica por qué Euler subestima $V(t)$ aquí.
-# - Prueba $\Delta t = 12$ (> $2\tau$): ¿qué le pasa a la solución numérica y por qué?
+# - Prueba $\Delta t = 12$ (> $2\tau$) y explica el comportamiento de la solución numérica.

@@ -7,6 +7,7 @@ Uso:
     python tools/convert_to_notebooks.py                 # todas las semanas
     python tools/convert_to_notebooks.py --execute       # todas, ejecutadas (con figuras)
     python tools/convert_to_notebooks.py weeks/week_03_lif_currents/week_03_lif_currents.py --execute
+    python tools/convert_to_notebooks.py --reuse-outputs   # solo cambió texto: conserva las figuras sin ejecutar
 """
 
 import argparse
@@ -99,22 +100,48 @@ def execute_notebook(notebook_path):
     nbformat.write(notebook, notebook_path)
 
 
-def convert_py_to_notebook(py_file_path, output_notebook_path, execute=False):
+def reuse_outputs(notebook, previous_path):
+    """Copia las salidas de las celdas de código cuyo texto no cambió; devuelve cuántas faltan."""
+    previous = json.loads(Path(previous_path).read_text(encoding="utf-8"))
+    as_text = lambda source: "".join(source) if isinstance(source, list) else source
+    executed = {as_text(c["source"]): c for c in previous["cells"] if c["cell_type"] == "code"}
+    missing = 0
+    for cell in notebook["cells"]:
+        if cell["cell_type"] != "code":
+            continue
+        old = executed.get(cell["source"])
+        if old is None or old.get("execution_count") is None:
+            missing += 1
+            continue
+        cell["outputs"], cell["execution_count"] = old["outputs"], old["execution_count"]
+    return missing
+
+
+def convert_py_to_notebook(py_file_path, output_notebook_path, execute=False, reuse=False):
     content = Path(py_file_path).read_text(encoding="utf-8")
     output_notebook_path = Path(output_notebook_path)
     output_notebook_path.parent.mkdir(parents=True, exist_ok=True)
+    notebook = build_notebook(content)
+    note = ""
+    if reuse and output_notebook_path.exists():
+        missing = reuse_outputs(notebook, output_notebook_path)
+        note = (" (salidas reutilizadas)" if not missing
+                else f" (ATENCIÓN: {missing} celda(s) de código sin salida; ejecútalo con --execute)")
     with open(output_notebook_path, "w", encoding="utf-8") as f:
-        json.dump(build_notebook(content), f, indent=1, ensure_ascii=False)
+        json.dump(notebook, f, indent=1, ensure_ascii=False)
         f.write("\n")
     if execute:
         execute_notebook(output_notebook_path)
-    print(f"Convertido: {py_file_path} -> {output_notebook_path}" + (" (ejecutado)" if execute else ""))
+        note = " (ejecutado)"
+    print(f"Convertido: {py_file_path} -> {output_notebook_path}{note}")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("scripts", nargs="*", type=Path, help="scripts a convertir (por defecto, todas las semanas)")
     parser.add_argument("--execute", action="store_true", help="ejecutar cada notebook para incluir figuras y salidas")
+    parser.add_argument("--reuse-outputs", action="store_true",
+                        help="sin ejecutar: conservar las salidas de las celdas de código que no cambiaron")
     args = parser.parse_args()
 
     scripts = args.scripts or sorted(WEEKS_DIR.glob("week_*/week_*.py"))
@@ -122,7 +149,7 @@ def main():
         if not py_path.exists():
             print(f"WARNING: No encontrado: {py_path}")
             continue
-        convert_py_to_notebook(py_path, py_path.with_suffix(".ipynb"), execute=args.execute)
+        convert_py_to_notebook(py_path, py_path.with_suffix(".ipynb"), execute=args.execute, reuse=args.reuse_outputs)
     print(f"\nConversion completada! {len(scripts)} notebook(s) junto a sus scripts en {WEEKS_DIR}")
 
 
